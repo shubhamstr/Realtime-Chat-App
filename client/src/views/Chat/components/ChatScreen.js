@@ -130,8 +130,8 @@ const ChatScreen = () => {
                 src={avatar}
               />
               <ConversationHeader.Content
-                userName={`Room ID - (${url})`}
                 info={`${chatList.length} message${chatList.length === 1 ? '' : 's'} in this room`}
+                userName={`Room ID - (${url})`}
               />
               <ConversationHeader.Actions>
                 <SendButton

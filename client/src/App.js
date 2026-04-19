@@ -2,31 +2,26 @@ import React, { Component } from 'react';
 import { Router } from 'react-router-dom';
 import { connect } from 'react-redux';
 import { createBrowserHistory } from 'history';
-import { Chart } from 'react-chartjs-2';
-import { ThemeProvider } from '@material-ui/styles';
-import validate from 'validate.js';
 import propTypes from 'prop-types';
 import { jwtDecode } from 'jwt-decode';
+import { ThemeProvider, createMuiTheme } from '@material-ui/core/styles';
 import axiosClient from './api/api-client';
 
-import { chartjs } from './helpers';
-import theme from './theme';
-// import './assets/scss/index.scss';
 import './assets/index.css';
-import validators from './common/validators';
 import Routes from './Routes';
 import { logIn, setDetails } from './store/authSlice';
 
 const browserHistory = createBrowserHistory();
-
-Chart.helpers.extend(Chart.elements.Rectangle.prototype, {
-  draw: chartjs.draw
+const theme = createMuiTheme({
+  palette: {
+    background: {
+      default: '#f8fafc'
+    },
+    primary: {
+      main: '#2563eb'
+    }
+  }
 });
-
-validate.validators = {
-  ...validate.validators,
-  ...validators
-};
 
 class App extends Component {
   setHeaderToken = token => {
@@ -34,9 +29,8 @@ class App extends Component {
   };
 
   checkAuthAndRedirect = () => {
-    let token = localStorage.getItem('chatToken');
-    let adminToken = localStorage.getItem('chatAdminToken');
-    let chatURL = localStorage.getItem('chatURL');
+    const token = localStorage.getItem('chatToken');
+    const chatURL = localStorage.getItem('chatURL');
     if (token && token !== 'undefined' && token !== 'null') {
       this.setHeaderToken(token);
       const tokenDetails = jwtDecode(token);
@@ -50,19 +44,6 @@ class App extends Component {
       });
       this.props.logIn();
       browserHistory.push(`/chat/${chatURL}`);
-    } else if (
-      adminToken &&
-      adminToken !== 'undefined' &&
-      adminToken !== 'null'
-    ) {
-      this.setHeaderToken(adminToken);
-      localStorage.setItem('chatAdminToken', adminToken);
-      this.props.setDetails({
-        type: 'userType',
-        value: 'admin'
-      });
-      this.props.logIn();
-      browserHistory.push('/dashboard');
     }
   };
 
@@ -86,16 +67,12 @@ App.propTypes = {
   setDetails: propTypes.func
 };
 
-const mapStateToProps = state => {
-  return { auth: state.auth };
-};
-
 const mapDispatchToProps = {
   logIn,
   setDetails
 };
 
 export default connect(
-  mapStateToProps,
+  null,
   mapDispatchToProps
 )(App);

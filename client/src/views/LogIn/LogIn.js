@@ -4,27 +4,15 @@ import { useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import { logIn, setDetails } from '../../store/authSlice';
 // eslint-disable-next-line no-unused-vars
-import { Link as RouterLink, withRouter } from 'react-router-dom';
+import { withRouter } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import validate from 'validate.js';
 import { jwtDecode } from 'jwt-decode';
 import { makeStyles } from '@material-ui/styles';
 import axiosClient from '../../api/api-client';
 import { signInApi } from '../../api/auth';
-import {
-  Grid,
-  Button,
-  // IconButton,
-  TextField,
-  // Link,
-  // ButtonGroup,
-  Typography
-} from '@material-ui/core';
-// import ArrowBackIcon from '@material-ui/icons/ArrowBack';
+import { Grid, Button, TextField, Typography } from '@material-ui/core';
 import { BASE_URL } from '../../constants';
-
-// eslint-disable-next-line no-unused-vars
-import { Facebook as FacebookIcon, Google as GoogleIcon } from 'icons';
 
 const schema = {
   userName: {
@@ -153,9 +141,6 @@ const LogIn = props => {
 
   const classes = useStyles();
 
-  // eslint-disable-next-line no-unused-vars
-  const [loginType, setLoginType] = useState('userName');
-
   const [formStateUserName, setFormStateUserName] = useState({
     isValid: false,
     values: {},
@@ -188,12 +173,6 @@ const LogIn = props => {
         [event.target.name]: true
       }
     }));
-  };
-
-  const handleSocialLogIn = event => {
-    event.preventDefault();
-    // eslint-disable-next-line no-console
-    console.log('handleSocialLogIn');
   };
 
   const setHeaderToken = token => {
@@ -291,70 +270,40 @@ const LogIn = props => {
                     {`Room ID - ${url}`}
                   </Typography>
                 )}
-                {loginType === 'social' && (
-                  <>
-                    <Typography
-                      align="center"
-                      className={classes.sugestion}
-                      color="textSecondary">
-                      Log in with social media
-                    </Typography>
-                    <Grid
-                      className={classes.socialButtons}
-                      container
-                      spacing={2}>
-                      <Grid container>
-                        <Button
-                          fullWidth
-                          onClick={handleSocialLogIn}
-                          size="large"
-                          variant="contained">
-                          <GoogleIcon className={classes.socialIcon} />
-                          Login with Google
-                        </Button>
-                      </Grid>
-                    </Grid>
-                  </>
-                )}
-
-                {loginType === 'userName' && (
-                  <>
-                    <Typography
-                      align="center"
-                      className={classes.sugestion}
-                      color="textSecondary"
-                      variant="body1">
-                      Log in with User Name
-                    </Typography>
-                    <TextField
-                      className={classes.textField}
-                      error={hasErrorUserName('userName')}
-                      fullWidth
-                      helperText={
-                        hasErrorUserName('userName')
-                          ? formStateUserName.errors.userName[0]
-                          : null
-                      }
-                      label="User Name"
-                      name="userName"
-                      onChange={handleChangeUserName}
-                      type="text"
-                      value={formStateUserName.values.userName || ''}
-                      variant="outlined"
-                    />
-                    <Button
-                      className={classes.logInButton}
-                      color="primary"
-                      disabled={!formStateUserName.isValid}
-                      fullWidth
-                      onClick={e => handleLogIn(e, 'userName')}
-                      size="large"
-                      type="submit"
-                      variant="contained">
-                      Log in
-                    </Button>
-                  </>
-                )}
+                <Typography
+                  align="center"
+                  className={classes.sugestion}
+                  color="textSecondary"
+                  variant="body1">
+                  Log in with User Name
+                </Typography>
+                <TextField
+                  className={classes.textField}
+                  error={hasErrorUserName('userName')}
+                  fullWidth
+                  helperText={
+                    hasErrorUserName('userName')
+                      ? formStateUserName.errors.userName[0]
+                      : null
+                  }
+                  label="User Name"
+                  name="userName"
+                  onChange={handleChangeUserName}
+                  type="text"
+                  value={formStateUserName.values.userName || ''}
+                  variant="outlined"
+                />
+                <Button
+                  className={classes.logInButton}
+                  color="primary"
+                  disabled={!formStateUserName.isValid}
+                  fullWidth
+                  onClick={e => handleLogIn(e, 'userName')}
+                  size="large"
+                  type="submit"
+                  variant="contained">
+                  Log in
+                </Button>
               </form>
             </div>
           </div>
