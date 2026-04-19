@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
 import PropTypes from 'prop-types';
-// import moment from 'moment';
-import PerfectScrollbar from 'react-perfect-scrollbar';
 import { makeStyles } from '@material-ui/styles';
 import {
   Card,
@@ -27,7 +25,8 @@ const useStyles = makeStyles(theme => ({
     padding: 0
   },
   inner: {
-    minWidth: 1050
+    minWidth: 1050,
+    overflowX: 'auto'
   },
   nameContainer: {
     display: 'flex',
@@ -95,62 +94,60 @@ const UsersListTable = props => {
   return (
     <Card {...rest} className={clsx(classes.root, className)}>
       <CardContent className={classes.content}>
-        <PerfectScrollbar>
-          <div className={classes.inner}>
-            <Table>
-              <TableHead>
-                <TableRow>
+        <div className={classes.inner}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    checked={selectedUsers.length === users.length}
+                    color="primary"
+                    indeterminate={
+                      selectedUsers.length > 0 &&
+                      selectedUsers.length < users.length
+                    }
+                    onChange={handleSelectAll}
+                  />
+                </TableCell>
+                <TableCell>Username</TableCell>
+                <TableCell>Chat URL (Room ID)</TableCell>
+                <TableCell>User Type</TableCell>
+                <TableCell>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {users.slice(0, rowsPerPage).map(user => (
+                <TableRow
+                  className={classes.tableRow}
+                  hover
+                  key={user.id}
+                  selected={selectedUsers.indexOf(user.id) !== -1}>
                   <TableCell padding="checkbox">
                     <Checkbox
-                      checked={selectedUsers.length === users.length}
+                      checked={selectedUsers.indexOf(user.id) !== -1}
                       color="primary"
-                      indeterminate={
-                        selectedUsers.length > 0 &&
-                        selectedUsers.length < users.length
-                      }
-                      onChange={handleSelectAll}
+                      onChange={event => handleSelectOne(event, user.id)}
+                      value="true"
                     />
                   </TableCell>
-                  <TableCell>Username</TableCell>
-                  <TableCell>Chat URL (Room ID)</TableCell>
-                  <TableCell>User Type</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>
+                    <div className={classes.nameContainer}>
+                      <Avatar className={classes.avatar} src={user.image}>
+                        {getInitials(user.username)}
+                      </Avatar>
+                      <Typography variant="body1">{user.username}</Typography>
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.chatURL}</TableCell>
+                  <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
+                  <TableCell>
+                    {user.is_active ? 'Active' : 'Inactive'}
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {users.slice(0, rowsPerPage).map(user => (
-                  <TableRow
-                    className={classes.tableRow}
-                    hover
-                    key={user.id}
-                    selected={selectedUsers.indexOf(user.id) !== -1}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        checked={selectedUsers.indexOf(user.id) !== -1}
-                        color="primary"
-                        onChange={event => handleSelectOne(event, user.id)}
-                        value="true"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className={classes.nameContainer}>
-                        <Avatar className={classes.avatar} src={user.image}>
-                          {getInitials(user.username)}
-                        </Avatar>
-                        <Typography variant="body1">{user.username}</Typography>
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.chatURL}</TableCell>
-                    <TableCell>{user.isAdmin ? 'Admin' : 'User'}</TableCell>
-                    <TableCell>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </PerfectScrollbar>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
       <CardActions className={classes.actions}>
         <TablePagination

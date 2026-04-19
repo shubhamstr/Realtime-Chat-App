@@ -1,8 +1,8 @@
-import uuid from 'uuid/v1';
+const createId = () => crypto.randomUUID();
 
 export default [
   {
-    id: uuid(),
+    id: createId(),
     name: 'Ekaterina Tankova',
     address: {
       country: 'USA',
@@ -16,7 +16,7 @@ export default [
     createdAt: 1555016400000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Cao Yu',
     address: {
       country: 'USA',
@@ -30,7 +30,7 @@ export default [
     createdAt: 1555016400000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Alexa Richardson',
     address: {
       country: 'USA',
@@ -44,7 +44,7 @@ export default [
     createdAt: 1555016400000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Anje Keizer',
     address: {
       country: 'USA',
@@ -58,7 +58,7 @@ export default [
     createdAt: 1554930000000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Clarke Gillebert',
     address: {
       country: 'USA',
@@ -72,7 +72,7 @@ export default [
     createdAt: 1554757200000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Adam Denisov',
     address: {
       country: 'USA',
@@ -86,7 +86,7 @@ export default [
     createdAt: 1554670800000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Ava Gregoraci',
     address: {
       country: 'USA',
@@ -100,7 +100,7 @@ export default [
     createdAt: 1554325200000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Emilee Simchenko',
     address: {
       country: 'USA',
@@ -114,7 +114,7 @@ export default [
     createdAt: 1523048400000
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Kwak Seong-Min',
     address: {
       country: 'USA',
@@ -127,7 +127,7 @@ export default [
     phone: '313-812-8947'
   },
   {
-    id: uuid(),
+    id: createId(),
     name: 'Merrile Burgett',
     address: {
       country: 'USA',

@@ -1,8 +1,8 @@
-import uuid from 'uuid/v1';
+const createId = () => crypto.randomUUID();
 
 export default [
   {
-    id: uuid(),
+    id: createId(),
     title: 'Dropbox',
     description:
       'Dropbox is a file hosting service that offers cloud storage, file synchronization, a personal cloud.',
@@ -11,7 +11,7 @@ export default [
     updatedAt: '27/03/2019'
   },
   {
-    id: uuid(),
+    id: createId(),
     title: 'Medium Corporation',
     description:
       'Medium is an online publishing platform developed by Evan Williams, and launched in August 2012.',
@@ -20,7 +20,7 @@ export default [
     createdAt: '31/03/2019'
   },
   {
-    id: uuid(),
+    id: createId(),
     title: 'Slack',
     description:
       'Slack is a cloud-based set of team collaboration tools and services, founded by Stewart Butterfield.',
@@ -29,7 +29,7 @@ export default [
     createdAt: '03/04/2019'
   },
   {
-    id: uuid(),
+    id: createId(),
     title: 'Lyft',
     description:
       'Lyft is an on-demand transportation company based in San Francisco, California.',
@@ -38,7 +38,7 @@ export default [
     createdAt: '04/04/2019'
   },
   {
-    id: uuid(),
+    id: createId(),
     title: 'GitHub',
     description:
       'GitHub is a web-based hosting service for version control of code using Git.',
@@ -47,7 +47,7 @@ export default [
     createdAt: '04/04/2019'
   },
   {
-    id: uuid(),
+    id: createId(),
     title: 'Squarespace',
     description:
       'Squarespace provides software as a service for website building and hosting. Headquartered in NYC.',

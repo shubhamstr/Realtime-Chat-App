@@ -11,7 +11,6 @@ import axiosClient from './api/api-client';
 
 import { chartjs } from './helpers';
 import theme from './theme';
-import 'react-perfect-scrollbar/dist/css/styles.css';
 // import './assets/scss/index.scss';
 import './assets/index.css';
 import validators from './common/validators';
