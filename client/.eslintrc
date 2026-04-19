@@ -12,7 +12,7 @@
     ],
     "jsx-quotes": 1,
     "linebreak-style": "off",
-    "quotes": [2, "double"],
+    // "quotes": [1, "single"],
     "react/display-name": 1,
     "react/forbid-prop-types": 0,
     "react/sort-prop-types": 1,

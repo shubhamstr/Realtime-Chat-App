@@ -1,54 +1,27 @@
-/* eslint-disable no-unused-vars */
 import React, { useEffect } from 'react';
 import { makeStyles } from '@material-ui/styles';
 import { Grid } from '@material-ui/core';
-import { io } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 
 import { ChatScreen } from './components';
 import { getAllUsersAPI } from '../../api/users';
 import { setDetails } from '../../store/authSlice';
-import { BASE_URL } from '../../constants';
 
 const useStyles = makeStyles(theme => ({
   root: {
-    padding: theme.spacing(4)
+    minHeight: '100vh',
+    padding: theme.spacing(3),
+    background:
+      'radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 30%), linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)'
   }
 }));
 
 const Chat = () => {
-  const url = window.location.pathname.split('/')[2];
   const dispatch = useDispatch();
   const classes = useStyles();
-  const socket = io(BASE_URL, { transports: ['websocket'] });
 
   const auth = useSelector(state => state.auth);
-  const { userDetails, tokenDetails, userType, userList } = auth;
-
-  socket.on('connected', user => {
-    console.log('socket connected', user);
-    // getAllUsersList();
-  });
-
-  // const getAllUsersList = () => {
-  //   const resp = getAllUsersAPI({
-  //     ignoreUserId: tokenDetails.userId
-  //   });
-  //   resp.then(res => {
-  //     // console.log(res);
-  //     if (res.err) {
-  //       alert(res.msg);
-  //     } else {
-  //       dispatch(
-  //         setDetails({
-  //           type: 'userList',
-  //           value: res.data
-  //         })
-  //       );
-  //       // console.log(auth);
-  //     }
-  //   });
-  // };
+  const { userDetails, tokenDetails } = auth;
 
   const getUserDetails = () => {
     const resp = getAllUsersAPI({
@@ -64,29 +37,14 @@ const Chat = () => {
             value: res.data[0]
           })
         );
-        // console.log(res.data[0]);
-        joinRoom(res.data[0].username);
       }
     });
   };
 
-  const joinRoom = username => {
-    socket.emit('joinRoom', { roomName: url, username: username });
-
-    socket.on('roomJoined', username => {
-      console.log('room joined', username);
-    });
-  };
-
   useEffect(() => {
-    console.log(url);
-
     if (Object.keys(userDetails).length === 0) {
       getUserDetails();
     }
-    // if (Object.keys(userList).length === 0) {
-    //   getAllUsersList();
-    // }
   }, []);
 
   return (
