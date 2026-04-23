@@ -16,7 +16,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import { sendMessageAPI, getAllChatAPI } from '../../../api/chat';
 import { logOut } from '../../../store/authSlice';
-import { BASE_URL, CLIENT_URL } from '../../../constants';
+
+const BASE_URL = process.env.REACT_APP_BASE_URL;
+console.log(BASE_URL, 'BASE_URL');
+const CLIENT_URL = process.env.REACT_APP_CLIENT_URL;
+console.log(CLIENT_URL, 'CLIENT_URL');
 
 const useStyles = makeStyles(() => ({
   shell: {

@@ -12,7 +12,9 @@ import { makeStyles } from '@material-ui/styles';
 import axiosClient from '../../api/api-client';
 import { signInApi } from '../../api/auth';
 import { Grid, Button, TextField, Typography } from '@material-ui/core';
-import { BASE_URL } from '../../constants';
+
+const BASE_URL = process.env.REACT_APP_BASE_URL;
+console.log(BASE_URL, 'BASE_URL');
 
 const schema = {
   userName: {
