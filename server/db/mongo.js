@@ -62,6 +62,7 @@ const deleteMessage = ({ id, user_id, room_id }) => {
 
   return Message.deleteOne(filter)
 }
+const updateMessage = (id, fields) => Message.updateOne({ _id: id }, { $set: fields })
 
 module.exports = {
   getUserByUsername,
@@ -73,4 +74,5 @@ module.exports = {
   createMessage,
   getMessagesByRoomId,
   deleteMessage,
+  updateMessage,
 }

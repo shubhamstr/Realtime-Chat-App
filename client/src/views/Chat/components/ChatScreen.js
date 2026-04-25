@@ -14,7 +14,12 @@ import {
 import { makeStyles } from '@material-ui/styles';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
-import { sendMessageAPI, getAllChatAPI, deleteChatAPI } from '../../../api/chat';
+import {
+  sendMessageAPI,
+  getAllChatAPI,
+  deleteChatAPI,
+  updateChatNotificationSettingsAPI
+} from '../../../api/chat';
 import { logOut } from '../../../store/authSlice';
 
 const BASE_URL = process.env.REACT_APP_BASE_URL;
@@ -111,6 +116,87 @@ const useStyles = makeStyles(() => ({
     fontSize: 14,
     lineHeight: 1,
     boxShadow: '0 6px 16px rgba(15, 23, 42, 0.12)'
+  },
+  settingsButton: {
+    border: '1px solid rgba(148, 163, 184, 0.28)',
+    background: '#fff',
+    color: '#0f172a',
+    borderRadius: 12,
+    padding: '8px 12px',
+    cursor: 'pointer',
+    fontSize: 13
+  },
+  modalBackdrop: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(15, 23, 42, 0.42)',
+    display: 'grid',
+    placeItems: 'center',
+    zIndex: 30
+  },
+  modal: {
+    width: 'min(92vw, 420px)',
+    borderRadius: 20,
+    background: '#fff',
+    boxShadow: '0 24px 80px rgba(15, 23, 42, 0.24)',
+    padding: 20
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginBottom: 6
+  },
+  modalText: {
+    fontSize: 13,
+    color: '#475569',
+    marginBottom: 16,
+    lineHeight: 1.5
+  },
+  field: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    marginBottom: 14
+  },
+  label: {
+    fontSize: 13,
+    color: '#0f172a',
+    fontWeight: 600
+  },
+  input: {
+    border: '1px solid rgba(148, 163, 184, 0.4)',
+    borderRadius: 12,
+    padding: '10px 12px',
+    fontSize: 14,
+    outline: 'none'
+  },
+  checkboxRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 18,
+    fontSize: 14,
+    color: '#0f172a'
+  },
+  modalActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: 10
+  },
+  secondaryButton: {
+    border: '1px solid rgba(148, 163, 184, 0.28)',
+    background: '#fff',
+    borderRadius: 12,
+    padding: '10px 14px',
+    cursor: 'pointer'
+  },
+  primaryButton: {
+    border: 'none',
+    background: '#2563eb',
+    color: '#fff',
+    borderRadius: 12,
+    padding: '10px 14px',
+    cursor: 'pointer'
   }
 }));
 
@@ -125,6 +211,14 @@ const ChatScreen = () => {
   const [typingUser, setTypingUser] = useState('');
   const [attachment, setAttachment] = useState('');
   const [attachmentName, setAttachmentName] = useState('');
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [emailAlertEnabled, setEmailAlertEnabled] = useState(false);
+  const [browserAlertEnabled, setBrowserAlertEnabled] = useState(false);
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [browserPermissionState, setBrowserPermissionState] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
   const { userDetails } = auth;
   const socket = useMemo(() => io(BASE_URL, { transports: ['websocket'] }), []);
   const typingTimeoutRef = useRef(null);
@@ -176,7 +270,10 @@ const ChatScreen = () => {
       user_id: userDetails.id || userDetails._id,
       room_id: url,
       message: message,
-      attachment
+      attachment,
+      username: userDetails.username || 'Someone',
+      emailAlertTo: notificationEmail,
+      enableEmailAlert: emailAlertEnabled ? 1 : 0
     });
     socket.emit('stopTyping', {
       roomName: url,
@@ -185,7 +282,6 @@ const ChatScreen = () => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    socket.emit('message', message);
     resp.then(res => {
       if (res.err) {
         alert(res.msg);
@@ -197,6 +293,39 @@ const ChatScreen = () => {
           fileInputRef.current.value = '';
         }
         loadChat();
+      }
+    });
+  };
+
+  const saveNotificationSettings = () => {
+    setSettingsSaving(true);
+    updateChatNotificationSettingsAPI({
+      id: userDetails.id || userDetails._id,
+      email: notificationEmail,
+      email_notification_flag: emailAlertEnabled ? 1 : 0,
+      push_notification_flag: browserAlertEnabled ? 1 : 0
+    }).then(res => {
+      setSettingsSaving(false);
+      if (res.err) {
+        alert(res.msg);
+        return;
+      }
+
+      setShowNotificationModal(false);
+      alert('Notification settings saved');
+    });
+  };
+
+  const enableBrowserAlerts = () => {
+    if (typeof Notification === 'undefined') {
+      alert('Your browser does not support notifications.');
+      return;
+    }
+
+    Notification.requestPermission().then(permission => {
+      setBrowserPermissionState(permission);
+      if (permission === 'granted') {
+        setBrowserAlertEnabled(true);
       }
     });
   };
@@ -290,12 +419,28 @@ const ChatScreen = () => {
       }
     };
 
-    socket.on('message', handleIncomingMessage);
+    socket.on('room-message', handleIncomingMessage);
     socket.on('typing', data => {
       if (data?.roomName === url && data?.username !== userDetails.username) {
         setTypingUser(data.username);
       }
     });
+
+    const handleBrowserNotification = data => {
+      if (data?.roomName !== url) {
+        return;
+      }
+
+      if (data?.username === userDetails.username) {
+        return;
+      }
+
+      if (browserAlertEnabled && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+        const body = data?.message ? `${data.username}: ${data.message}` : `${data.username} sent a new message`;
+        new Notification(`New message in room ${url}`, { body });
+      }
+    };
+    socket.on('room-message', handleBrowserNotification);
     socket.on('stopTyping', data => {
       if (data?.roomName === url) {
         setTypingUser(current => (current === data.username ? '' : current));
@@ -303,15 +448,16 @@ const ChatScreen = () => {
     });
 
     return () => {
-      socket.off('message', handleIncomingMessage);
+      socket.off('room-message', handleIncomingMessage);
       socket.off('typing');
       socket.off('stopTyping');
+      socket.off('room-message', handleBrowserNotification);
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
       socket.disconnect();
     };
-  }, [socket, url, userDetails.username]);
+  }, [socket, url, userDetails.username, browserAlertEnabled]);
 
   useEffect(() => {
     if (url) {
@@ -339,6 +485,19 @@ const ChatScreen = () => {
                 userName={`Room ID - (${url})`}
               />
               <ConversationHeader.Actions>
+                <button
+                  className={classes.settingsButton}
+                  onClick={() => {
+                    setNotificationEmail(userDetails.email || '');
+                    setEmailAlertEnabled(Boolean(userDetails.email_notification_flag));
+                    setBrowserAlertEnabled(Boolean(userDetails.push_notification_flag));
+                    setShowNotificationModal(true);
+                  }}
+                  type="button"
+                  title="Notification settings"
+                >
+                  Notifications
+                </button>
                 <SendButton
                   border
                   onClick={() => {
@@ -429,6 +588,64 @@ const ChatScreen = () => {
           </ChatContainer>
         )}
       </MainContainer>
+      {showNotificationModal ? (
+        <div className={classes.modalBackdrop} onClick={() => setShowNotificationModal(false)} role="presentation">
+          <div className={classes.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div className={classes.modalTitle}>Notification settings</div>
+            <div className={classes.modalText}>
+              Enable email alerts to receive each new message by email, or enable browser alerts for desktop popups.
+            </div>
+            <div className={classes.field}>
+              <label className={classes.label} htmlFor="notification-email">
+                Email address
+              </label>
+              <input
+                className={classes.input}
+                id="notification-email"
+                onChange={e => setNotificationEmail(e.target.value)}
+                placeholder="name@example.com"
+                type="email"
+                value={notificationEmail}
+              />
+            </div>
+            <div className={classes.checkboxRow}>
+              <input
+                checked={emailAlertEnabled}
+                id="email-alert"
+                onChange={e => setEmailAlertEnabled(e.target.checked)}
+                type="checkbox"
+              />
+              <label htmlFor="email-alert">Enable email alerts</label>
+            </div>
+            <div className={classes.checkboxRow}>
+              <input
+                checked={browserAlertEnabled}
+                id="browser-alert"
+                onChange={e => {
+                  const enabled = e.target.checked;
+                  setBrowserAlertEnabled(enabled);
+                  if (enabled) {
+                    enableBrowserAlerts();
+                  }
+                }}
+                type="checkbox"
+              />
+              <label htmlFor="browser-alert">
+                Enable browser alerts
+                {browserPermissionState && browserPermissionState !== 'granted' ? ` (${browserPermissionState})` : ''}
+              </label>
+            </div>
+            <div className={classes.modalActions}>
+              <button className={classes.secondaryButton} onClick={() => setShowNotificationModal(false)} type="button">
+                Cancel
+              </button>
+              <button className={classes.primaryButton} onClick={saveNotificationSettings} type="button">
+                {settingsSaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div className={classes.composer}>
         <input
           ref={fileInputRef}

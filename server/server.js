@@ -27,6 +27,7 @@ app.get("/html", (req, res) => {
 app.use("/users", users)
 app.use("/auth", auth)
 app.use("/chat", chat)
+app.set("io", io)
 
 // socket io
 io.on("connection", (socket) => {
@@ -49,11 +50,19 @@ io.on("connection", (socket) => {
   socket.on("message", (msg) => {
     console.log("socket message", msg)
     if (socket.data.roomName) {
-      socket.to(socket.data.roomName).emit("message", msg)
+      socket.to(socket.data.roomName).emit("room-message", {
+        roomName: socket.data.roomName,
+        username: msg?.username || "Someone",
+        message: msg?.message || "",
+      })
       return
     }
 
-    socket.broadcast.emit("message", msg)
+    socket.broadcast.emit("room-message", {
+      roomName: socket.data.roomName || "",
+      username: msg?.username || "Someone",
+      message: msg?.message || "",
+    })
   })
 
   socket.on("typing", (data) => {
