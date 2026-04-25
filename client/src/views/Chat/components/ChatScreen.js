@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import {
   Avatar,
@@ -220,7 +220,16 @@ const ChatScreen = () => {
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
   const { userDetails } = auth;
-  const socket = useMemo(() => io(BASE_URL, { transports: ['websocket'] }), []);
+  const socketRef = useRef(null);
+  if (!socketRef.current) {
+    socketRef.current = io(BASE_URL, {
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000
+    });
+  }
+  const socket = socketRef.current;
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
   const avatar = userDetails.image
@@ -341,7 +350,18 @@ const ChatScreen = () => {
       return;
     }
 
-    // console.log(userDetails)
+    const optimisticMessage = {
+      id: `tmp-${Date.now()}`,
+      user_id: userDetails.id || userDetails._id,
+      room_id: url,
+      message: message,
+      attachment,
+      username: userDetails.username || 'Someone',
+      created_on: new Date().toISOString()
+    };
+
+    setChatList(current => [...current, optimisticMessage]);
+
     const resp = sendMessageAPI({
       user_id: userDetails.id || userDetails._id,
       room_id: url,
@@ -360,6 +380,7 @@ const ChatScreen = () => {
     }
     resp.then(res => {
       if (res.err) {
+        setChatList(current => current.filter(chat => chat.id !== optimisticMessage.id));
         alert(res.msg);
       } else {
         setMessage('');
@@ -368,7 +389,6 @@ const ChatScreen = () => {
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        loadChat();
       }
     });
   };
@@ -475,56 +495,92 @@ const ChatScreen = () => {
   };
 
   useEffect(() => {
-    setTypingUser('');
+    const handleIncomingMessage = data => {
+      if (!url || data?.roomName !== url) {
+        return;
+      }
 
-    if (url && userDetails.username) {
-      socket.emit('joinRoom', {
-        roomName: url,
-        username: userDetails.username
+      if (data?.username === userDetails.username) {
+        return;
+      }
+
+      setChatList(current => {
+        const incomingId = data?.messageId || `${data?.roomName || url}-${data?.username || 'Someone'}-${data?.message || ''}`;
+        const alreadyExists = current.some(chat => chat.id === incomingId || chat.messageId === incomingId);
+
+        if (alreadyExists) {
+          return current;
+        }
+
+        return [
+          ...current,
+          {
+            id: incomingId,
+            user_id: data?.user_id || '',
+            room_id: data?.roomName || url,
+            message: data?.message || '',
+            attachment: data?.attachment || '',
+            username: data?.username || 'Someone',
+            created_on: data?.created_on || new Date().toISOString()
+          }
+        ];
       });
-    }
+    };
 
-    const handleIncomingMessage = () => {
-      if (url) {
-        loadChat();
+    const handleConnect = () => {
+      if (url && userDetails.username) {
+        socket.emit('joinRoom', {
+          roomName: url,
+          username: userDetails.username
+        });
+      }
+    };
+
+    const handleTyping = data => {
+      if (data?.roomName === url && data?.username !== userDetails.username) {
+        setTypingUser(data.username);
+      }
+    };
+
+    const handleStopTyping = data => {
+      if (data?.roomName === url) {
+        setTypingUser(current => (current === data.username ? '' : current));
       }
     };
 
     socket.on('room-message', handleIncomingMessage);
-    socket.on('typing', data => {
-      if (data?.roomName === url && data?.username !== userDetails.username) {
-        setTypingUser(data.username);
-      }
+    socket.on('connect', handleConnect);
+    socket.on('connect_error', err => {
+      console.log('Socket connect error:', err?.message || err);
     });
+    socket.on('typing', handleTyping);
+    socket.on('stopTyping', handleStopTyping);
 
-    const handleBrowserNotification = data => {
-      if (data?.roomName !== url) return;
-      showBrowserNotification(data);
-    };
-    socket.on('room-message', handleBrowserNotification);
-    socket.on('stopTyping', data => {
-      if (data?.roomName === url) {
-        setTypingUser(current => (current === data.username ? '' : current));
-      }
-    });
+    handleConnect();
 
     return () => {
       socket.off('room-message', handleIncomingMessage);
-      socket.off('typing');
-      socket.off('stopTyping');
-      socket.off('room-message', handleBrowserNotification);
+      socket.off('connect', handleConnect);
+      socket.off('connect_error');
+      socket.off('typing', handleTyping);
+      socket.off('stopTyping', handleStopTyping);
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
+    };
+  }, [socket, url, userDetails.username]);
+
+  useEffect(() => {
+    return () => {
       socket.disconnect();
     };
-  }, [socket, url, userDetails.username, browserAlertEnabled]);
+  }, [socket]);
 
   useEffect(() => {
     if (url) {
       loadChat();
     }
-  }, [url, userDetails]);
+  }, [url, userDetails.id, userDetails._id]);
 
   return (
     <div className={classes.shell}>

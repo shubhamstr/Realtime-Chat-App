@@ -1,7 +1,6 @@
 const express = require("express")
 const app = express()
 const http = require("http").createServer(app)
-const io = require("socket.io")(http)
 const cors = require("cors")
 
 require("dotenv").config()
@@ -11,10 +10,29 @@ const auth = require("./routes/auth")
 const chat = require("./routes/chat")
 
 const PORT = process.env.PORT || 5000
+const CLIENT_URL = process.env.CLIENT_URL || process.env.REACT_APP_CLIENT_URL || "http://localhost:3000"
+const allowedOrigins = new Set([
+  CLIENT_URL,
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://localhost:3001",
+  "http://127.0.0.1:3001",
+])
 
 app.use(express.static(__dirname + "/public"))
 app.use(express.json({ limit: "20mb" }))
-app.use(cors())
+app.use(cors({
+  origin: CLIENT_URL,
+  credentials: true,
+}))
+
+const io = require("socket.io")(http, {
+  cors: {
+    origin: Array.from(allowedOrigins),
+    methods: ["GET", "POST"],
+    credentials: false,
+  },
+})
 
 app.get("/", (req, res) => {
   res.send("server is running on " + PORT)
