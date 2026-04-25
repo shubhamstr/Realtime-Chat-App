@@ -22,6 +22,9 @@ console.log(BASE_URL, 'BASE_URL');
 const CLIENT_URL = process.env.REACT_APP_CLIENT_URL;
 console.log(CLIENT_URL, 'CLIENT_URL');
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+const DEFAULT_USER_AVATAR = '/images/avatars/user.svg';
+const INCOMING_USER_AVATAR = '/images/avatars/user-incoming.svg';
+const OUTGOING_USER_AVATAR = '/images/avatars/user-outgoing.svg';
 
 const useStyles = makeStyles(() => ({
   shell: {
@@ -128,7 +131,7 @@ const ChatScreen = () => {
   const fileInputRef = useRef(null);
   const avatar = userDetails.image
     ? userDetails.image
-    : '/images/avatars/avatar_11.png';
+    : DEFAULT_USER_AVATAR;
 
   const handleMsg = value => {
     setMessage(value);
@@ -400,7 +403,13 @@ const ChatScreen = () => {
                             ) : null}
                           </Message.CustomContent>
                         ) : null}
-                        <Avatar src={dir === 'outgoing' ? avatar : '/images/avatars/avatar_8.png'} />
+                        <Avatar
+                          src={
+                            dir === 'outgoing'
+                              ? (userDetails.image || OUTGOING_USER_AVATAR)
+                              : INCOMING_USER_AVATAR
+                          }
+                        />
                       </Message>
                     </div>
                   );

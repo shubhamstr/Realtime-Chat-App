@@ -1,0 +1,17 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Default user avatar">
+  <defs>
+    <linearGradient id="bg" x1="32" y1="28" x2="224" y2="228" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2E8F0"/>
+      <stop offset="1" stop-color="#CBD5E1"/>
+    </linearGradient>
+    <linearGradient id="shadow" x1="128" y1="132" x2="128" y2="220" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#64748B" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#64748B" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg)"/>
+  <circle cx="128" cy="128" r="120" stroke="#94A3B8" stroke-opacity="0.25" stroke-width="2"/>
+  <circle cx="128" cy="102" r="38" fill="#475569"/>
+  <path d="M68 204C68 171.026 94.0269 145 127 145H129C161.973 145 188 171.027 188 204V208C188 214.627 182.627 220 176 220H80C73.3726 220 68 214.627 68 208V204Z" fill="#475569"/>
+  <ellipse cx="128" cy="222" rx="78" ry="14" fill="url(#shadow)"/>
+</svg>
