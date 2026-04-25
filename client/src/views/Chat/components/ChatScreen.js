@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import {
   Avatar,
@@ -55,14 +55,45 @@ const ChatScreen = () => {
   const [message, setMessage] = useState('');
   const [chatList, setChatList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [typingUser, setTypingUser] = useState('');
   const { userDetails } = auth;
   const socket = useMemo(() => io(BASE_URL, { transports: ['websocket'] }), []);
+  const typingTimeoutRef = useRef(null);
   const avatar = userDetails.image
     ? userDetails.image
     : '/images/avatars/avatar_11.png';
 
   const handleMsg = value => {
     setMessage(value);
+
+    if (!url) {
+      return;
+    }
+
+    const currentUser = userDetails.username || 'Someone';
+
+    if (value && value.trim()) {
+      socket.emit('typing', {
+        roomName: url,
+        username: currentUser
+      });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit('stopTyping', {
+          roomName: url,
+          username: currentUser
+        });
+      }, 1200);
+    } else {
+      socket.emit('stopTyping', {
+        roomName: url,
+        username: currentUser
+      });
+    }
   };
 
   const handleSend = () => {
@@ -72,11 +103,19 @@ const ChatScreen = () => {
       room_id: url,
       message: message
     });
+    socket.emit('stopTyping', {
+      roomName: url,
+      username: userDetails.username || 'Someone'
+    });
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
     socket.emit('message', message);
     resp.then(res => {
       if (res.err) {
         alert(res.msg);
       } else {
+        setMessage('');
         loadChat();
       }
     });
@@ -103,6 +142,15 @@ const ChatScreen = () => {
   };
 
   useEffect(() => {
+    setTypingUser('');
+
+    if (url && userDetails.username) {
+      socket.emit('joinRoom', {
+        roomName: url,
+        username: userDetails.username
+      });
+    }
+
     const handleIncomingMessage = () => {
       if (url) {
         loadChat();
@@ -110,12 +158,27 @@ const ChatScreen = () => {
     };
 
     socket.on('message', handleIncomingMessage);
+    socket.on('typing', data => {
+      if (data?.roomName === url && data?.username !== userDetails.username) {
+        setTypingUser(data.username);
+      }
+    });
+    socket.on('stopTyping', data => {
+      if (data?.roomName === url) {
+        setTypingUser(current => (current === data.username ? '' : current));
+      }
+    });
 
     return () => {
       socket.off('message', handleIncomingMessage);
+      socket.off('typing');
+      socket.off('stopTyping');
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
       socket.disconnect();
     };
-  }, [socket, url]);
+  }, [socket, url, userDetails.username]);
 
   useEffect(() => {
     if (url) {
@@ -135,7 +198,11 @@ const ChatScreen = () => {
                 src={avatar}
               />
               <ConversationHeader.Content
-                info={`${chatList.length} message${chatList.length === 1 ? '' : 's'} in this room`}
+                info={
+                  typingUser
+                    ? `${typingUser} is typing...`
+                    : `${chatList.length} message${chatList.length === 1 ? '' : 's'} in this room`
+                }
                 userName={`Room ID - (${url})`}
               />
               <ConversationHeader.Actions>

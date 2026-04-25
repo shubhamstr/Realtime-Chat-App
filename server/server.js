@@ -36,6 +36,7 @@ io.on("connection", (socket) => {
     console.log(obj)
     console.log(socket.rooms) // Set { <socket.id> }
     socket.join(obj.roomName)
+    socket.data.roomName = obj.roomName
     console.log(socket.rooms) // Set { <socket.id>, "room1" }
     socket.broadcast.emit("roomJoined", obj.username)
   })
@@ -47,7 +48,28 @@ io.on("connection", (socket) => {
 
   socket.on("message", (msg) => {
     console.log("socket message", msg)
+    if (socket.data.roomName) {
+      socket.to(socket.data.roomName).emit("message", msg)
+      return
+    }
+
     socket.broadcast.emit("message", msg)
+  })
+
+  socket.on("typing", (data) => {
+    if (!socket.data.roomName) {
+      return
+    }
+
+    socket.to(socket.data.roomName).emit("typing", data)
+  })
+
+  socket.on("stopTyping", (data) => {
+    if (!socket.data.roomName) {
+      return
+    }
+
+    socket.to(socket.data.roomName).emit("stopTyping", data)
   })
 })
 
