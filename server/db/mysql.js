@@ -71,6 +71,23 @@ const createMessage = async ({ user_id, room_id, message, attachment }) => {
 const getMessagesByRoomId = async (roomId) =>
   query(`SELECT * FROM messages WHERE room_id = ${mysql.escape(roomId)}`)
 
+const deleteMessage = async ({ id, user_id, room_id }) => {
+  const conditions = [`id = ${mysql.escape(id)}`]
+
+  if (user_id) {
+    conditions.push(`user_id = ${mysql.escape(user_id)}`)
+  }
+
+  if (room_id) {
+    conditions.push(`room_id = ${mysql.escape(room_id)}`)
+  }
+
+  const result = await query(
+    `DELETE FROM messages WHERE ${conditions.join(" AND ")}`
+  )
+  return { affectedRows: result.affectedRows || 0 }
+}
+
 module.exports = {
   getUserByUsername,
   getUserById,
@@ -80,4 +97,5 @@ module.exports = {
   updateUser,
   createMessage,
   getMessagesByRoomId,
+  deleteMessage,
 }

@@ -54,4 +54,42 @@ router.get("/get-all", (req, res) => {
   }
 })
 
+router.delete("/delete", (req, res) => {
+  const id = req.body?.id?.toString()
+  const user_id = req.body?.user_id?.toString()
+  const room_id = req.body?.room_id?.toString()
+
+  if (!id || !room_id || !user_id) {
+    return res.send({
+      err: true,
+      msg: "Missing message information",
+      data: "",
+    })
+  }
+
+  db.deleteMessage({ id, user_id, room_id })
+    .then((result) => {
+      if (!result || !result.affectedRows) {
+        return res.send({
+          err: true,
+          msg: "Message not found or you do not have permission to delete it",
+          data: result,
+        })
+      }
+
+      return res.send({
+        err: false,
+        msg: "Message deleted successfully",
+        data: result,
+      })
+    })
+    .catch((err) => {
+      return res.send({
+        err: true,
+        msg: err.sqlMessage ? err.sqlMessage : "Server Error",
+        data: err,
+      })
+    })
+})
+
 module.exports = router

@@ -49,6 +49,19 @@ const getUserByFilter = ({ userId, ignoreUserId }) => {
 const updateUser = (id, fields) => User.updateOne({ _id: id }, { $set: fields })
 const createMessage = (payload) => Message.create(payload)
 const getMessagesByRoomId = (roomId) => Message.find({ room_id: roomId }).lean()
+const deleteMessage = ({ id, user_id, room_id }) => {
+  const filter = { _id: id }
+
+  if (user_id) {
+    filter.user_id = user_id
+  }
+
+  if (room_id) {
+    filter.room_id = room_id
+  }
+
+  return Message.deleteOne(filter)
+}
 
 module.exports = {
   getUserByUsername,
@@ -59,4 +72,5 @@ module.exports = {
   updateUser,
   createMessage,
   getMessagesByRoomId,
+  deleteMessage,
 }
