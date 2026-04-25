@@ -17,3 +17,9 @@ export function getAllChatAPI(payload) {
       return resp.data;
     });
 }
+
+export function deleteChatAPI(payload) {
+  return axiosClient.delete('/chat/delete', { data: payload }).then(resp => {
+    return resp.data;
+  });
+}

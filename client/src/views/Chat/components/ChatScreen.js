@@ -14,7 +14,7 @@ import {
 import { makeStyles } from '@material-ui/styles';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
-import { sendMessageAPI, getAllChatAPI } from '../../../api/chat';
+import { sendMessageAPI, getAllChatAPI, deleteChatAPI } from '../../../api/chat';
 import { logOut } from '../../../store/authSlice';
 
 const BASE_URL = process.env.REACT_APP_BASE_URL;
@@ -88,6 +88,26 @@ const useStyles = makeStyles(() => ({
     borderRadius: 8,
     objectFit: 'cover',
     flexShrink: 0
+  },
+  messageShell: {
+    position: 'relative'
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: -6,
+    right: 40,
+    width: 24,
+    height: 24,
+    borderRadius: '50%',
+    border: '1px solid rgba(239, 68, 68, 0.28)',
+    background: '#fff',
+    color: '#dc2626',
+    cursor: 'pointer',
+    display: 'grid',
+    placeItems: 'center',
+    fontSize: 14,
+    lineHeight: 1,
+    boxShadow: '0 6px 16px rgba(15, 23, 42, 0.12)'
   }
 }));
 
@@ -205,6 +225,32 @@ const ChatScreen = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleDeleteMessage = chat => {
+    const messageId = chat.id || chat._id;
+
+    if (!messageId) {
+      alert('This message cannot be deleted.');
+      return;
+    }
+
+    if (!window.confirm('Delete this message?')) {
+      return;
+    }
+
+    deleteChatAPI({
+      id: messageId,
+      user_id: userDetails.id || userDetails._id,
+      room_id: url
+    }).then(res => {
+      if (res.err) {
+        alert(res.msg);
+        return;
+      }
+
+      loadChat();
+    });
+  };
+
   const handleLogOut = () => {
     localStorage.removeItem('chatToken');
     dispatch(logOut());
@@ -317,34 +363,46 @@ const ChatScreen = () => {
                       : 'incoming';
 
                   return (
-                    <Message
-                      key={`${chat.id || index}-${chat.created_on || 'msg'}`}
-                      model={{
-                        message: chat.message,
-                        sentTime: 'just now',
-                        sender: chat.username || 'Guest',
-                        direction: dir
-                      }}>
-                      {chat.attachment ? (
-                        <Message.CustomContent>
-                          <img
-                            alt={chat.message || 'attachment'}
-                            src={chat.attachment}
-                            style={{
-                              maxWidth: 240,
-                              maxHeight: 240,
-                              borderRadius: 12,
-                              display: 'block',
-                              border: '1px solid rgba(148, 163, 184, 0.2)'
-                            }}
-                          />
-                          {chat.message ? (
-                            <div style={{ marginTop: 8, wordBreak: 'break-word' }}>{chat.message}</div>
-                          ) : null}
-                        </Message.CustomContent>
+                    <div className={classes.messageShell} key={`${chat.id || index}-${chat.created_on || 'msg'}`}>
+                      {dir === 'outgoing' ? (
+                        <button
+                          aria-label="Delete message"
+                          className={classes.deleteButton}
+                          onClick={() => handleDeleteMessage(chat)}
+                          title="Delete message"
+                          type="button"
+                        >
+                          ×
+                        </button>
                       ) : null}
-                      <Avatar src={dir === 'outgoing' ? avatar : '/images/avatars/avatar_8.png'} />
-                    </Message>
+                      <Message
+                        model={{
+                          message: chat.message,
+                          sentTime: 'just now',
+                          sender: chat.username || 'Guest',
+                          direction: dir
+                        }}>
+                        {chat.attachment ? (
+                          <Message.CustomContent>
+                            <img
+                              alt={chat.message || 'attachment'}
+                              src={chat.attachment}
+                              style={{
+                                maxWidth: 240,
+                                maxHeight: 240,
+                                borderRadius: 12,
+                                display: 'block',
+                                border: '1px solid rgba(148, 163, 184, 0.2)'
+                              }}
+                            />
+                            {chat.message ? (
+                              <div style={{ marginTop: 8, wordBreak: 'break-word' }}>{chat.message}</div>
+                            ) : null}
+                          </Message.CustomContent>
+                        ) : null}
+                        <Avatar src={dir === 'outgoing' ? avatar : '/images/avatars/avatar_8.png'} />
+                      </Message>
+                    </div>
                   );
                 })
               ) : (
