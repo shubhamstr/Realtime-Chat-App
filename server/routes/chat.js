@@ -182,6 +182,15 @@ router.delete("/delete", (req, res) => {
         })
       }
 
+      const io = req.app.get("io")
+      if (io && room_id) {
+        io.to(room_id).emit("message-deleted", {
+          messageId: id,
+          roomName: room_id,
+          user_id,
+        })
+      }
+
       return res.send({
         err: false,
         msg: "Message deleted successfully",

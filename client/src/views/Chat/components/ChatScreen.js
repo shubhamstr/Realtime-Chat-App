@@ -490,7 +490,12 @@ const ChatScreen = () => {
         return;
       }
 
-      loadChat();
+      setChatList(current =>
+        current.filter(item => {
+          const itemId = item._id || item.id;
+          return String(itemId) !== String(messageId);
+        })
+      );
     });
   };
 
@@ -509,8 +514,9 @@ const ChatScreen = () => {
         alert(res.msg);
       } else {
         setChatList(res.data);
-        setLoading(false);
       }
+    }).finally(() => {
+      setLoading(false);
     });
   };
 
@@ -571,6 +577,21 @@ const ChatScreen = () => {
       });
     };
 
+    const handleDeletedMessage = data => {
+      if (!url || data?.roomName !== url) {
+        return;
+      }
+
+      const deletedId = data?.messageId;
+      if (!deletedId) {
+        return;
+      }
+
+      setChatList(current =>
+        current.filter(chat => String(chat._id || chat.id) !== String(deletedId))
+      );
+    };
+
     const handleConnect = () => {
       if (url && userDetails.username) {
         socket.emit('joinRoom', {
@@ -593,6 +614,7 @@ const ChatScreen = () => {
     };
 
     socket.on('room-message', handleIncomingMessage);
+    socket.on('message-deleted', handleDeletedMessage);
     socket.on('connect', handleConnect);
     socket.on('connect_error', err => {
       console.log('Socket connect error:', err?.message || err);
@@ -604,6 +626,7 @@ const ChatScreen = () => {
 
     return () => {
       socket.off('room-message', handleIncomingMessage);
+      socket.off('message-deleted', handleDeletedMessage);
       socket.off('connect', handleConnect);
       socket.off('connect_error');
       socket.off('typing', handleTyping);
