@@ -50,6 +50,10 @@ const updateUser = (id, fields) => User.updateOne({ _id: id }, { $set: fields })
 const createMessage = (payload) => Message.create(payload)
 const getMessagesByRoomId = (roomId) => Message.find({ room_id: roomId }).lean()
 const deleteMessage = ({ id, user_id, room_id }) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return Promise.resolve({ deletedCount: 0, invalidId: true })
+  }
+
   const filter = { _id: id }
 
   if (user_id) {

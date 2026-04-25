@@ -383,6 +383,21 @@ const ChatScreen = () => {
         setChatList(current => current.filter(chat => chat.id !== optimisticMessage.id));
         alert(res.msg);
       } else {
+        const persistedMessage = res?.data || {};
+        const persistedId = persistedMessage._id || persistedMessage.id || optimisticMessage.id;
+
+        setChatList(current =>
+          current.map(chat =>
+            chat.id === optimisticMessage.id
+              ? {
+                ...chat,
+                ...persistedMessage,
+                id: persistedId,
+                _id: persistedMessage._id || chat._id || persistedId
+              }
+              : chat
+          )
+        );
         setMessage('');
         setAttachment('');
         setAttachmentName('');
@@ -449,10 +464,15 @@ const ChatScreen = () => {
   };
 
   const handleDeleteMessage = chat => {
-    const messageId = chat.id || chat._id;
+    const messageId = chat._id || chat.id;
 
     if (!messageId) {
       alert('This message cannot be deleted.');
+      return;
+    }
+
+    if (String(messageId).startsWith('tmp-')) {
+      setChatList(current => current.filter(item => (item._id || item.id) !== messageId));
       return;
     }
 
@@ -510,6 +530,30 @@ const ChatScreen = () => {
 
         if (alreadyExists) {
           return current;
+        }
+
+        const tempIndex = current.findIndex(chat =>
+          String(chat.id || '').startsWith('tmp-') &&
+          chat.user_id === data?.user_id &&
+          chat.room_id === (data?.roomName || url) &&
+          chat.message === (data?.message || '') &&
+          chat.attachment === (data?.attachment || '')
+        );
+
+        if (tempIndex >= 0) {
+          const next = [...current];
+          next[tempIndex] = {
+            ...next[tempIndex],
+            id: incomingId,
+            _id: data?.messageId || next[tempIndex]._id || incomingId,
+            user_id: data?.user_id || next[tempIndex].user_id,
+            room_id: data?.roomName || url,
+            message: data?.message || next[tempIndex].message,
+            attachment: data?.attachment || next[tempIndex].attachment,
+            username: data?.username || next[tempIndex].username,
+            created_on: data?.created_on || next[tempIndex].created_on
+          };
+          return next;
         }
 
         return [
