@@ -61,9 +61,9 @@ const updateUser = async (id, fields) => {
   return query(`UPDATE users SET ${assignments} WHERE id = ${mysql.escape(id)}`)
 }
 
-const createMessage = async ({ user_id, room_id, message }) => {
+const createMessage = async ({ user_id, room_id, message, attachment }) => {
   const result = await query(
-    `INSERT INTO messages (user_id, room_id, message) VALUES (${mysql.escape(user_id)}, ${mysql.escape(room_id)}, ${mysql.escape(message)})`
+    `INSERT INTO messages (user_id, room_id, message, attachment) VALUES (${mysql.escape(user_id)}, ${mysql.escape(room_id)}, ${mysql.escape(message)}, ${mysql.escape(attachment || "")})`
   )
   return { id: result.insertId }
 }

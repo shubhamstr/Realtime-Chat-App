@@ -10,7 +10,8 @@ router.post("/insert", (req, res) => {
   db.createMessage({
     user_id: req.body?.user_id?.toString(),
     room_id: req.body?.room_id?.toString(),
-    message: req.body.message,
+    message: req.body.message || "",
+    attachment: req.body.attachment || "",
   })
     .then(() => {
       return res.send({

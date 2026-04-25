@@ -13,7 +13,7 @@ const chat = require("./routes/chat")
 const PORT = process.env.PORT || 5000
 
 app.use(express.static(__dirname + "/public"))
-app.use(express.json())
+app.use(express.json({ limit: "20mb" }))
 app.use(cors())
 
 app.get("/", (req, res) => {

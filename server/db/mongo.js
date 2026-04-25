@@ -28,7 +28,8 @@ const messageSchema = new mongoose.Schema(
   {
     user_id: { type: String, required: true },
     room_id: { type: String, required: true, index: true },
-    message: { type: String, required: true },
+    message: { type: String, default: "" },
+    attachment: { type: String, default: "" },
   },
   { timestamps: true }
 )
