@@ -66,8 +66,9 @@ const ChatScreen = () => {
   };
 
   const handleSend = () => {
+    // console.log(userDetails)
     const resp = sendMessageAPI({
-      user_id: userDetails.id,
+      user_id: userDetails.id || userDetails._id,
       room_id: url,
       message: message
     });
@@ -160,7 +161,7 @@ const ChatScreen = () => {
               {chatList.length > 0 ? (
                 chatList.map((chat, index) => {
                   const dir =
-                    userDetails.id === parseInt(chat.user_id, 10)
+                    (userDetails.id === chat.user_id || userDetails._id === chat.user_id)
                       ? 'outgoing'
                       : 'incoming';
 

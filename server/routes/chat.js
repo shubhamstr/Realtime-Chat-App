@@ -8,8 +8,8 @@ dotenv.config()
 
 router.post("/insert", (req, res) => {
   db.createMessage({
-    user_id: req.body.user_id.toString(),
-    room_id: req.body.room_id.toString(),
+    user_id: req.body?.user_id?.toString(),
+    room_id: req.body?.room_id?.toString(),
     message: req.body.message,
   })
     .then(() => {
