@@ -1,15 +1,14 @@
-FROM mysql:8.0
+FROM node:20-alpine
 
-ENV MYSQL_ROOT_PASSWORD=root
-ENV MYSQL_DATABASE=socket_chat
-ENV MYSQL_USER=socket_chat_user
-ENV MYSQL_PASSWORD=User@1234
+WORKDIR /app
 
-# EXPOSE 3308
+COPY server/package*.json ./server/
+RUN cd server && npm ci --omit=dev
 
-# Install netcat for HTTP hack
-RUN apt-get update && apt-get install -y netcat
+COPY server ./server
 
-EXPOSE 3306
+WORKDIR /app/server
 
-CMD sh -c "mysqld & while true; do echo -e 'HTTP/1.1 200 OK\n\nOK' | nc -l -p $PORT; done"
+EXPOSE 5000
+
+CMD ["npm", "start"]
