@@ -227,6 +227,82 @@ const ChatScreen = () => {
     ? userDetails.image
     : DEFAULT_USER_AVATAR;
 
+  const syncBrowserPermission = () => {
+    if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
+      setBrowserPermissionState('unsupported');
+      setBrowserAlertEnabled(false);
+      return 'unsupported';
+    }
+
+    const permission = window.Notification.permission;
+    setBrowserPermissionState(permission);
+    if (permission !== 'granted') {
+      setBrowserAlertEnabled(false);
+    }
+    return permission;
+  };
+
+  const requestBrowserAlerts = async () => {
+    if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
+      alert('This browser does not support notifications.');
+      return false;
+    }
+
+    if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      alert('Browser notifications require HTTPS or localhost.');
+      return false;
+    }
+
+    const permission = await window.Notification.requestPermission();
+    setBrowserPermissionState(permission);
+    if (permission !== 'granted') {
+      setBrowserAlertEnabled(false);
+      alert('Browser notifications were not allowed.');
+      return false;
+    }
+
+    setBrowserAlertEnabled(true);
+    return true;
+  };
+
+  const showBrowserNotification = data => {
+    if (!browserAlertEnabled) {
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
+      return;
+    }
+
+    if (window.Notification.permission !== 'granted') {
+      return;
+    }
+
+    if (data?.username === userDetails.username) {
+      return;
+    }
+
+    const title = `New message in room ${url}`;
+    const body = data?.message
+      ? `${data.username || 'Someone'}: ${data.message}`
+      : `${data.username || 'Someone'} sent a new message`;
+
+    try {
+      const notification = new window.Notification(title, {
+        body,
+        icon: userDetails.image || DEFAULT_USER_AVATAR,
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    } catch (err) {
+      console.log('Browser notification failed:', err);
+      alert(body);
+    }
+  };
+
   const handleMsg = value => {
     setMessage(value);
 
@@ -299,35 +375,30 @@ const ChatScreen = () => {
 
   const saveNotificationSettings = () => {
     setSettingsSaving(true);
-    updateChatNotificationSettingsAPI({
-      id: userDetails.id || userDetails._id,
-      email: notificationEmail,
-      email_notification_flag: emailAlertEnabled ? 1 : 0,
-      push_notification_flag: browserAlertEnabled ? 1 : 0
-    }).then(res => {
-      setSettingsSaving(false);
-      if (res.err) {
-        alert(res.msg);
-        return;
-      }
+    const permissionPromise = browserAlertEnabled ? requestBrowserAlerts() : Promise.resolve(true);
 
-      setShowNotificationModal(false);
-      alert('Notification settings saved');
-    });
-  };
+    permissionPromise
+      .then(canEnableBrowserAlerts => updateChatNotificationSettingsAPI({
+        id: userDetails.id || userDetails._id,
+        email: notificationEmail,
+        email_notification_flag: emailAlertEnabled ? 1 : 0,
+        push_notification_flag: canEnableBrowserAlerts && browserAlertEnabled ? 1 : 0
+      }))
+      .then(res => {
+        setSettingsSaving(false);
+        if (res.err) {
+          alert(res.msg);
+          return;
+        }
 
-  const enableBrowserAlerts = () => {
-    if (typeof Notification === 'undefined') {
-      alert('Your browser does not support notifications.');
-      return;
-    }
-
-    Notification.requestPermission().then(permission => {
-      setBrowserPermissionState(permission);
-      if (permission === 'granted') {
-        setBrowserAlertEnabled(true);
-      }
-    });
+        syncBrowserPermission();
+        setShowNotificationModal(false);
+        alert('Notification settings saved');
+      })
+      .catch(err => {
+        setSettingsSaving(false);
+        alert(err?.message || 'Unable to save notification settings');
+      });
   };
 
   const handleAttachmentChange = event => {
@@ -427,18 +498,8 @@ const ChatScreen = () => {
     });
 
     const handleBrowserNotification = data => {
-      if (data?.roomName !== url) {
-        return;
-      }
-
-      if (data?.username === userDetails.username) {
-        return;
-      }
-
-      if (browserAlertEnabled && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-        const body = data?.message ? `${data.username}: ${data.message}` : `${data.username} sent a new message`;
-        new Notification(`New message in room ${url}`, { body });
-      }
+      if (data?.roomName !== url) return;
+      showBrowserNotification(data);
     };
     socket.on('room-message', handleBrowserNotification);
     socket.on('stopTyping', data => {
@@ -491,6 +552,7 @@ const ChatScreen = () => {
                     setNotificationEmail(userDetails.email || '');
                     setEmailAlertEnabled(Boolean(userDetails.email_notification_flag));
                     setBrowserAlertEnabled(Boolean(userDetails.push_notification_flag));
+                    syncBrowserPermission();
                     setShowNotificationModal(true);
                   }}
                   type="button"
@@ -625,7 +687,7 @@ const ChatScreen = () => {
                   const enabled = e.target.checked;
                   setBrowserAlertEnabled(enabled);
                   if (enabled) {
-                    enableBrowserAlerts();
+                    requestBrowserAlerts();
                   }
                 }}
                 type="checkbox"
@@ -635,6 +697,23 @@ const ChatScreen = () => {
                 {browserPermissionState && browserPermissionState !== 'granted' ? ` (${browserPermissionState})` : ''}
               </label>
             </div>
+            <button
+              className={classes.secondaryButton}
+              onClick={() => {
+                requestBrowserAlerts().then(granted => {
+                  if (granted) {
+                    showBrowserNotification({
+                      username: 'Test',
+                      message: 'This is a browser notification test'
+                    });
+                  }
+                });
+              }}
+              style={{ marginBottom: 18, width: '100%' }}
+              type="button"
+            >
+              Test browser notification
+            </button>
             <div className={classes.modalActions}>
               <button className={classes.secondaryButton} onClick={() => setShowNotificationModal(false)} type="button">
                 Cancel
