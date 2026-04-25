@@ -232,6 +232,10 @@ const ChatScreen = () => {
   const socket = socketRef.current;
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
+  const browserAlertEnabledRef = useRef(false);
+  const browserPermissionRef = useRef(
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  );
   const avatar = userDetails.image
     ? userDetails.image
     : DEFAULT_USER_AVATAR;
@@ -239,14 +243,18 @@ const ChatScreen = () => {
   const syncBrowserPermission = () => {
     if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
       setBrowserPermissionState('unsupported');
+      browserPermissionRef.current = 'unsupported';
       setBrowserAlertEnabled(false);
+      browserAlertEnabledRef.current = false;
       return 'unsupported';
     }
 
     const permission = window.Notification.permission;
     setBrowserPermissionState(permission);
+    browserPermissionRef.current = permission;
     if (permission !== 'granted') {
       setBrowserAlertEnabled(false);
+      browserAlertEnabledRef.current = false;
     }
     return permission;
   };
@@ -264,18 +272,21 @@ const ChatScreen = () => {
 
     const permission = await window.Notification.requestPermission();
     setBrowserPermissionState(permission);
+    browserPermissionRef.current = permission;
     if (permission !== 'granted') {
       setBrowserAlertEnabled(false);
+      browserAlertEnabledRef.current = false;
       alert('Browser notifications were not allowed.');
       return false;
     }
 
     setBrowserAlertEnabled(true);
+    browserAlertEnabledRef.current = true;
     return true;
   };
 
   const showBrowserNotification = data => {
-    if (!browserAlertEnabled) {
+    if (!browserAlertEnabledRef.current) {
       return;
     }
 
@@ -283,7 +294,7 @@ const ChatScreen = () => {
       return;
     }
 
-    if (window.Notification.permission !== 'granted') {
+    if (browserPermissionRef.current !== 'granted') {
       return;
     }
 
@@ -311,6 +322,13 @@ const ChatScreen = () => {
       alert(body);
     }
   };
+
+  useEffect(() => {
+    const enabled = Boolean(userDetails.push_notification_flag);
+    setBrowserAlertEnabled(enabled);
+    browserAlertEnabledRef.current = enabled;
+    syncBrowserPermission();
+  }, [userDetails.push_notification_flag]);
 
   const handleMsg = value => {
     setMessage(value);
@@ -530,6 +548,8 @@ const ChatScreen = () => {
         return;
       }
 
+      showBrowserNotification(data);
+
       setChatList(current => {
         const incomingId = data?.messageId || `${data?.roomName || url}-${data?.username || 'Someone'}-${data?.message || ''}`;
         const alreadyExists = current.some(chat => chat.id === incomingId || chat.messageId === incomingId);
@@ -673,8 +693,11 @@ const ChatScreen = () => {
                   className={classes.settingsButton}
                   onClick={() => {
                     setNotificationEmail(userDetails.email || '');
-                    setEmailAlertEnabled(Boolean(userDetails.email_notification_flag));
-                    setBrowserAlertEnabled(Boolean(userDetails.push_notification_flag));
+                    const emailEnabled = Boolean(userDetails.email_notification_flag);
+                    const browserEnabled = Boolean(userDetails.push_notification_flag);
+                    setEmailAlertEnabled(emailEnabled);
+                    setBrowserAlertEnabled(browserEnabled);
+                    browserAlertEnabledRef.current = browserEnabled;
                     syncBrowserPermission();
                     setShowNotificationModal(true);
                   }}
@@ -809,6 +832,7 @@ const ChatScreen = () => {
                 onChange={e => {
                   const enabled = e.target.checked;
                   setBrowserAlertEnabled(enabled);
+                  browserAlertEnabledRef.current = enabled;
                   if (enabled) {
                     requestBrowserAlerts();
                   }
