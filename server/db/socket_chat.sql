@@ -29,8 +29,8 @@ CREATE TABLE `messages` (
   `attachment` text DEFAULT NULL,
   `read_flag` tinyint(4) NOT NULL DEFAULT 0,
   `is_deleted` tinyint(4) NOT NULL DEFAULT 0,
-  `created_on` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_on` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `created_on` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_on` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --
@@ -66,8 +66,8 @@ CREATE TABLE `users` (
   `email_message_flag` tinyint(4) NOT NULL DEFAULT 0,
   `push_message_flag` tinyint(4) NOT NULL DEFAULT 1,
   `is_active` tinyint(4) NOT NULL DEFAULT 1,
-  `created_on` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_on` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 --

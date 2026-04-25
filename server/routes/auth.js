@@ -1,6 +1,6 @@
 const express = require("express")
 const router = express.Router()
-const db = require("../db/db")
+const db = require("../db")
 const jwt = require("jsonwebtoken")
 const dotenv = require("dotenv")
 const crypto = require("crypto")
@@ -14,10 +14,11 @@ const iv = crypto.randomBytes(16) // Initialization Vector
 
 const generateToken = (result) => {
   let jwtSecretKey = process.env.JWT_SECRET_KEY
+  const currentUser = result[0] || {}
   // console.log(jwtSecretKey)
   let data = {
     time: Date(),
-    userId: result[0].id,
+    userId: currentUser.id || currentUser._id,
     userType: "user",
   }
   // console.log(data)
@@ -42,95 +43,51 @@ function generateEncryptedURL(name) {
   return urlSafe
 }
 
-const runQuery = (sql) => {
-  return new Promise((resolve, reject) => {
-    db.query(sql, (err, result) => {
-      if (err) {
-        resolve({
-          error: true,
-          msg: err.sqlMessage ? err.sqlMessage : "Server Error",
-          data: err,
-        })
-      }
-      resolve({
-        error: false,
-        data: result,
-      })
-    })
-  })
-}
-
 router.post("/login", async (req, res) => {
-  // console.log(req.body)
-  if (req.body.loginType === "userName") {
-    let userId = ""
-    let encryptedUrlToken = ""
-    if (req.body.room_id) {
-      encryptedUrlToken = req.body.room_id
+  if (req.body.loginType !== "userName") {
+    return res.send({ err: true, msg: "Unsupported login type" })
+  }
+
+  try {
+    let encryptedUrlToken = req.body.room_id || generateEncryptedURL(req.body.userName)
+    const existingUser = await db.getUserByUsername(req.body.userName)
+
+    let user
+    if (!existingUser) {
+      user = await db.createUser({
+        username: req.body.userName,
+        chatURL: encryptedUrlToken,
+      })
+    } else if (req.body.room_id) {
+      user = existingUser
     } else {
-      // create encrypted url
-      encryptedUrlToken = generateEncryptedURL(req.body.userName)
-      console.log("Encrypted URL-safe token:", encryptedUrlToken)
-    }
-    // checking if user exists
-    var sql0 = `SELECT * FROM users WHERE username = '${req.body.userName}';`
-    const resp0 = await runQuery(sql0)
-    // console.log(resp0)
-    if (resp0.err) {
       return res.send({
         err: true,
-        msg: resp0.msg,
-        data: resp0.data,
+        msg: "Userame already exists",
       })
-    } else {
-      console.log(resp0.data)
-      // if user not present create user
-      if (resp0.data.length === 0) {
-        var sql1 = `INSERT INTO users (username, chatURL) VALUES ('${req.body.userName}', '${encryptedUrlToken}')`
-        const resp1 = await runQuery(sql1)
-        // console.log(resp1)
-        if (resp1.err) {
-          return res.send({
-            err: true,
-            msg: resp1.msg,
-            data: resp1.data,
-          })
-        } else {
-          userId = resp1.data.insertId
-        }
-      } else {
-        return res.send({
-          err: true,
-          msg: "Userame already exists",
-        })
-      }
     }
 
-    var sql2 = `SELECT * FROM users WHERE id = '${userId}';`
-    const resp2 = await runQuery(sql2)
-    // console.log(resp2)
-    if (resp2.err) {
+    const userId = user.id || user._id
+    const currentUser = await db.getUserById(userId)
+    if (!currentUser) {
       return res.send({
         err: true,
-        msg: resp2.msg,
-        data: resp2.data,
+        msg: "Server Error",
       })
-    } else {
-      if (resp2.data.length > 0) {
-        let token = generateToken(resp2.data)
-        return res.send({
-          err: false,
-          msg: "User Logged In Successfully!!",
-          data: token,
-          chatURL: encryptedUrlToken,
-        })
-      } else {
-        return res.send({
-          err: true,
-          msg: "Server Error",
-        })
-      }
     }
+
+    let token = generateToken([currentUser])
+    return res.send({
+      err: false,
+      msg: "User Logged In Successfully!!",
+      data: token,
+      chatURL: encryptedUrlToken,
+    })
+  } catch (error) {
+    return res.send({
+      err: true,
+      msg: error.message || "Server Error",
+    })
   }
 })
 
