@@ -22,7 +22,7 @@ router.post("/insert", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: err.sqlMessage ? err.sqlMessage : "Server Error",
+        msg: err.sqlMessage ? err.sqlMessage : "Server Error (insert)",
         data: err,
       })
     })
@@ -41,14 +41,14 @@ router.get("/get-all", (req, res) => {
       .catch((err) => {
         return res.send({
           err: true,
-          msg: "Server Error",
+          msg: "Server Error (get-all)",
           data: err,
         })
       })
   } else {
     return res.send({
       err: true,
-      msg: "Server Error",
+      msg: "Server Error (get-all)",
       data: "",
     })
   }
@@ -69,7 +69,15 @@ router.delete("/delete", (req, res) => {
 
   db.deleteMessage({ id, user_id, room_id })
     .then((result) => {
-      if (!result || !result.affectedRows) {
+      let isError = !result;
+      // console.log(process.env.DB_PROVIDER, 'process.env.DB_PROVIDER')
+      if (process.env.DB_PROVIDER === "mongo") {
+        isError = result.deletedCount === 0;
+      } else {
+        isError = !result.affectedRows;
+      }
+      // console.log(isError, 'isError')
+      if (isError) {
         return res.send({
           err: true,
           msg: "Message not found or you do not have permission to delete it",
@@ -84,9 +92,10 @@ router.delete("/delete", (req, res) => {
       })
     })
     .catch((err) => {
+      console.log(err)
       return res.send({
         err: true,
-        msg: err.sqlMessage ? err.sqlMessage : "Server Error",
+        msg: err.sqlMessage ? err.sqlMessage : "Server Error (delete)",
         data: err,
       })
     })

@@ -72,7 +72,7 @@ router.post("/login", async (req, res) => {
     if (!currentUser) {
       return res.send({
         err: true,
-        msg: "Server Error",
+        msg: "Server Error (login)",
       })
     }
 
@@ -86,7 +86,7 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     return res.send({
       err: true,
-      msg: error.message || "Server Error",
+      msg: error.message || "Server Error (login)",
     })
   }
 })

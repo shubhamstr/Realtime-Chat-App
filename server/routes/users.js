@@ -17,7 +17,7 @@ router.get("/get-all", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: "Server Error",
+        msg: "Server Error (get-all)",
         data: err,
       })
     })
@@ -40,7 +40,7 @@ router.post("/update-notification", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: "Server Error",
+        msg: "Server Error (update-notification)",
         data: err,
       })
     })
@@ -61,7 +61,7 @@ router.post("/update-personal", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: "Server Error",
+        msg: "Server Error (update-personal)",
         data: err,
       })
     })
@@ -101,7 +101,7 @@ router.post("/update-password", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: "Server Error",
+        msg: "Server Error (update-password)",
         data: err,
       })
     })
