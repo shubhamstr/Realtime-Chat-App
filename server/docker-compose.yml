@@ -1,23 +1,42 @@
 version: "3.9"
 
 services:
+  server:
+    build: .
+    container_name: chat-server
+    restart: always
+    ports:
+      - "3001:5000"
+    environment:
+      PORT: 5000
+      JWT_SECRET_KEY: socket_secret_chat
+      DB_PROVIDER: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASS: root
+      DB_NAME: socket_chat
+      MONGO_URI: mongodb://mongo:27017/socket_chat
+    depends_on:
+      - mysql
+      - mongo
+    volumes:
+      - .:/app
+      - /app/node_modules
+
   mysql:
     image: mysql:8.0
     container_name: mysql-db
     restart: always
-
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: socket_chat
       MYSQL_USER: socket_chat_user
       MYSQL_PASSWORD: User@1234
-
     ports:
       - "3308:3306"
-
     volumes:
       - mysql_data:/var/lib/mysql
-
     command: --default-authentication-plugin=mysql_native_password
 
   mongo:
