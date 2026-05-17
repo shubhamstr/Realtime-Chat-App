@@ -1,0 +1,65 @@
+name: Build and Deploy to Oracle Cloud
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+env:
+  # E.g., iad.ocir.io for Ashburn, phx.ocir.io for Phoenix
+  OCI_REGION_REGISTRY: ${{ secrets.OCI_REGION_REGISTRY }}
+  OCI_NAMESPACE: ${{ secrets.OCI_NAMESPACE }}
+  OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Oracle Cloud Infrastructure Registry (OCIR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.OCI_REGION_REGISTRY }}
+          username: ${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}
+          password: ${{ secrets.OCI_AUTH_TOKEN }}
+
+      - name: Build and Push Server Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server
+          push: true
+          tags: ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
+
+      - name: Build and Push Client Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          push: true
+          tags: ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+
+  deploy:
+    name: Deploy to Oracle Cloud VM
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OCI_VM_IP }}
+          username: ${{ secrets.OCI_VM_USERNAME }} # Usually 'opc' or 'ubuntu'
+          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          script: |
+            # Login to Oracle Registry on the VM
+            docker login ${{ env.OCI_REGION_REGISTRY }} -u ${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }} -p ${{ secrets.OCI_AUTH_TOKEN }}
+            
+            # Pull the latest images
+            docker pull ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
+            docker pull ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+            
+            # Restart containers
+            docker rm -f chat-server chat-client || true
+            docker run -d --name chat-server -p 3001:3001 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
+            docker run -d --name chat-client -p 80:80 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest

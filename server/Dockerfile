@@ -11,5 +11,5 @@ COPY . .
 
 EXPOSE 3001
 
-# Start the backend with nodemon
-CMD ["npm", "run", "dev"]
+# Start the backend in production mode
+CMD ["npm", "start"]
