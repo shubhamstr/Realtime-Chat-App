@@ -1,0 +1,24 @@
+name: Deploy MongoDB (One-Time)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-mongo:
+    name: Deploy MongoDB to Oracle Cloud VM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute MongoDB deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OCI_VM_IP }}
+          username: ${{ secrets.OCI_VM_USERNAME }}
+          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          script: |
+            docker network create chat-network || true
+            docker rm -f chat-db || true
+            
+            docker run -d --name chat-db --network chat-network \
+              -e MONGO_INITDB_DATABASE=socket_chat \
+              -p 27017:27017 \
+              mongo:latest
