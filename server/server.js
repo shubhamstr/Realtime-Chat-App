@@ -10,7 +10,7 @@ const auth = require("./routes/auth")
 const chat = require("./routes/chat")
 
 const PORT = process.env.PORT || 5000
-const CLIENT_URL = process.env.CLIENT_URL || process.env.REACT_APP_CLIENT_URL || "http://localhost:3000"
+const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"
 const allowedOrigins = new Set([
   CLIENT_URL,
   "http://localhost:3000",
