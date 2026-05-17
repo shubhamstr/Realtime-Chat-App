@@ -26,18 +26,6 @@ jobs:
           username: ${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}
           password: ${{ secrets.OCI_AUTH_TOKEN }}
 
-      - name: Generate server .env file
-        run: |
-          echo "PORT=5000" > ./server/.env
-          echo "JWT_SECRET_KEY=socket_secret_chat" >> ./server/.env
-          echo "DB_PROVIDER=${{ vars.DB_PROVIDER }}" >> ./server/.env
-          echo "DB_HOST=${{ vars.DB_HOST }}" >> ./server/.env
-          echo "DB_PORT=${{ vars.DB_PORT }}" >> ./server/.env
-          echo "DB_USER=${{ vars.DB_USER }}" >> ./server/.env
-          echo "DB_PASS=${{ vars.DB_PASS }}" >> ./server/.env
-          echo "DB_NAME=${{ vars.DB_NAME }}" >> ./server/.env
-          echo "MONGO_URI=${{ vars.MONGO_URI }}" >> ./server/.env
-
       - name: Build and Push Server Image
         uses: docker/build-push-action@v5
         with:
@@ -45,17 +33,15 @@ jobs:
           push: true
           tags: ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
 
-      - name: Generate client .env file
-        run: |
-          echo "REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}" > ./client/.env
-          echo "REACT_APP_SOCKET_URL=${{ vars.REACT_APP_SOCKET_URL }}" >> ./client/.env
-
       - name: Build and Push Client Image
         uses: docker/build-push-action@v5
         with:
           context: ./client
           push: true
           tags: ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+          build-args: |
+            REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}
+            REACT_APP_SOCKET_URL=${{ vars.REACT_APP_SOCKET_URL }}
 
   deploy:
     name: Deploy to Oracle Cloud VM
@@ -64,10 +50,19 @@ jobs:
     steps:
       - name: Execute deployment via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DB_PROVIDER: ${{ vars.DB_PROVIDER }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_PASS: ${{ vars.DB_PASS }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          MONGO_URI: ${{ vars.MONGO_URI }}
         with:
           host: ${{ secrets.OCI_VM_IP }}
           username: ${{ secrets.OCI_VM_USERNAME }} # Usually 'opc' or 'ubuntu'
           key: ${{ secrets.OCI_VM_SSH_KEY }}
+          envs: DB_PROVIDER,DB_HOST,DB_PORT,DB_USER,DB_PASS,DB_NAME,MONGO_URI
           script: |
             # Login to Oracle Registry on the VM
             echo '${{ secrets.OCI_AUTH_TOKEN }}' | docker login ${{ env.OCI_REGION_REGISTRY }} -u '${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}' --password-stdin
@@ -78,5 +73,12 @@ jobs:
             
             # Restart containers
             docker rm -f chat-server chat-client || true
-            docker run -d --name chat-server -p 3001:3001 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
+            
+            docker run -d --name chat-server -p 3001:5000 \
+              -e PORT=5000 -e JWT_SECRET_KEY=socket_secret_chat \
+              -e DB_PROVIDER="$DB_PROVIDER" -e DB_HOST="$DB_HOST" \
+              -e DB_PORT="$DB_PORT" -e DB_USER="$DB_USER" \
+              -e DB_PASS="$DB_PASS" -e DB_NAME="$DB_NAME" -e MONGO_URI="$MONGO_URI" \
+              ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
+              
             docker run -d --name chat-client -p 3000:80 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
