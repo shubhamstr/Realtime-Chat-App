@@ -33,6 +33,11 @@ jobs:
           push: true
           tags: ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
 
+      - name: Generate client .env file
+        run: |
+          echo "REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}" > ./client/.env
+          echo "REACT_APP_SOCKET_URL=${{ vars.REACT_APP_SOCKET_URL }}" >> ./client/.env
+
       - name: Build and Push Client Image
         uses: docker/build-push-action@v5
         with:
