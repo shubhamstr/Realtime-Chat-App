@@ -6,3 +6,5 @@ services:
     container_name: chat-client
     ports:
       - "3000:80"
+    env_file:
+      - .env
