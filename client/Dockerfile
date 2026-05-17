@@ -1,4 +1,5 @@
-FROM node:18-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -9,7 +10,14 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
-EXPOSE 3000
+# Build the application
+RUN npm run build
 
-# Start the development server
-CMD ["npm", "start"]
+# Production stage
+FROM nginx:alpine
+COPY --from=builder /app/build /usr/share/nginx/html
+
+EXPOSE 80
+
+# Start Nginx server
+CMD ["nginx", "-g", "daemon off;"]
