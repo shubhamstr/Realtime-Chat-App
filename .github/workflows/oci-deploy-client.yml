@@ -1,0 +1,70 @@
+name: Build and Deploy Client to Oracle Cloud
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'client/**'
+  workflow_dispatch:
+
+env:
+  # E.g., iad.ocir.io for Ashburn, phx.ocir.io for Phoenix
+  OCI_REGION_REGISTRY: "bom.ocir.io"
+  OCI_NAMESPACE: "bm9iljpbnagj"
+  OCI_USERNAME: "shubhamsutar5799@gmail.com"
+
+jobs:
+  build-and-push:
+    name: Build and Push Client Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Oracle Cloud Infrastructure Registry (OCIR)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.OCI_REGION_REGISTRY }}
+          username: ${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}
+          password: ${{ secrets.OCI_AUTH_TOKEN }}
+
+      - name: Generate client .env file
+        run: |
+          echo "REACT_APP_BASE_URL=${{ vars.REACT_APP_BASE_URL }}" > ./client/.env
+          echo "REACT_APP_CLIENT_URL=${{ vars.REACT_APP_CLIENT_URL }}" >> ./client/.env
+          echo "--- client/.env contents ---"
+          cat ./client/.env
+
+      - name: Build and Push Client Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          push: true
+          tags: ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+
+  deploy:
+    name: Deploy Client to Oracle Cloud VM
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OCI_VM_IP }}
+          username: ${{ secrets.OCI_VM_USERNAME }} # Usually 'opc' or 'ubuntu'
+          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          script: |
+            # Login to Oracle Registry on the VM
+            echo '${{ secrets.OCI_AUTH_TOKEN }}' | docker login ${{ env.OCI_REGION_REGISTRY }} -u '${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}' --password-stdin
+            
+            # Pull the latest image
+            docker pull ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+            
+            # Restart container
+            docker rm -f chat-client || true
+            docker run -d --name chat-client -p 3000:80 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+            
+            # Debug: Output logs and cat .env files inside the running container
+            sleep 3
+            docker logs chat-client
+            docker exec chat-client cat .env || true
