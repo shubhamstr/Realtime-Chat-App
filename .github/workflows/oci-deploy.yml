@@ -53,7 +53,7 @@ jobs:
           key: ${{ secrets.OCI_VM_SSH_KEY }}
           script: |
             # Login to Oracle Registry on the VM
-            docker login ${{ env.OCI_REGION_REGISTRY }} -u ${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }} -p ${{ secrets.OCI_AUTH_TOKEN }}
+            echo '${{ secrets.OCI_AUTH_TOKEN }}' | docker login ${{ env.OCI_REGION_REGISTRY }} -u '${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}' --password-stdin
             
             # Pull the latest images
             docker pull ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
