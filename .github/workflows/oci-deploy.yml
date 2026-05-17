@@ -26,6 +26,18 @@ jobs:
           username: ${{ env.OCI_NAMESPACE }}/${{ env.OCI_USERNAME }}
           password: ${{ secrets.OCI_AUTH_TOKEN }}
 
+      - name: Generate server .env file
+        run: |
+          echo "PORT=5000" > ./server/.env
+          echo "JWT_SECRET_KEY=socket_secret_chat" >> ./server/.env
+          echo "DB_PROVIDER=${{ vars.DB_PROVIDER }}" >> ./server/.env
+          echo "DB_HOST=${{ vars.DB_HOST }}" >> ./server/.env
+          echo "DB_PORT=${{ vars.DB_PORT }}" >> ./server/.env
+          echo "DB_USER=${{ vars.DB_USER }}" >> ./server/.env
+          echo "DB_PASS=${{ vars.DB_PASS }}" >> ./server/.env
+          echo "DB_NAME=${{ vars.DB_NAME }}" >> ./server/.env
+          echo "MONGO_URI=${{ vars.MONGO_URI }}" >> ./server/.env
+
       - name: Build and Push Server Image
         uses: docker/build-push-action@v5
         with:
