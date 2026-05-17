@@ -37,6 +37,8 @@ jobs:
           echo "DB_PASS=${{ vars.DB_PASS }}" >> ./server/.env
           echo "DB_NAME=${{ vars.DB_NAME }}" >> ./server/.env
           echo "MONGO_URI=${{ vars.MONGO_URI }}" >> ./server/.env
+          echo "--- server/.env contents ---"
+          cat ./server/.env
 
       - name: Build and Push Server Image
         uses: docker/build-push-action@v5
@@ -49,6 +51,8 @@ jobs:
         run: |
           echo "REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}" > ./client/.env
           echo "REACT_APP_SOCKET_URL=${{ vars.REACT_APP_SOCKET_URL }}" >> ./client/.env
+          echo "--- client/.env contents ---"
+          cat ./client/.env
 
       - name: Build and Push Client Image
         uses: docker/build-push-action@v5
@@ -80,3 +84,10 @@ jobs:
             docker rm -f chat-server chat-client || true
             docker run -d --name chat-server -p 3001:3001 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-server:latest
             docker run -d --name chat-client -p 3000:80 ${{ env.OCI_REGION_REGISTRY }}/${{ env.OCI_NAMESPACE }}/chat-client:latest
+            
+            # Debug: Output logs and cat .env files inside the running containers
+            sleep 3
+            docker logs chat-server
+            docker logs chat-client
+            docker exec chat-server cat .env || true
+            docker exec chat-client cat .env || true
