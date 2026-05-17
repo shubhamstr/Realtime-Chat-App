@@ -7,9 +7,9 @@ on:
 
 env:
   # E.g., iad.ocir.io for Ashburn, phx.ocir.io for Phoenix
-  OCI_REGION_REGISTRY: ${{ secrets.OCI_REGION_REGISTRY }}
-  OCI_NAMESPACE: ${{ secrets.OCI_NAMESPACE }}
-  OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+  OCI_REGION_REGISTRY: "bom.ocir.io"
+  OCI_NAMESPACE: "bm9iljpbnagj"
+  OCI_USERNAME: "shubhamsutar5799@gmail.com"
 
 jobs:
   build-and-push:
