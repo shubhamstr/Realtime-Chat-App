@@ -15,7 +15,7 @@ const Routes = () => {
       <Redirect
         exact
         from="/"
-        to={auth.isLoggedIn ? `/chat/${chatURL}` : 'login'}
+        to={auth.isLoggedIn ? `/chat/${chatURL}` : '/login'}
       />
       <RouteWithLayout
         component={LogInView}

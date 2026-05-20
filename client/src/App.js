@@ -43,7 +43,9 @@ class App extends Component {
         value: tokenDetails
       });
       this.props.logIn();
-      browserHistory.push(`/chat/${chatURL}`);
+      if (chatURL) {
+        browserHistory.push(`/chat/${chatURL}`);
+      }
     }
   };
 
