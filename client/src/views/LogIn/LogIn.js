@@ -13,8 +13,7 @@ import axiosClient from '../../api/api-client';
 import { signInApi } from '../../api/auth';
 import { Button, TextField, Typography } from '@material-ui/core';
 
-const BASE_URL = process.env.REACT_APP_BASE_URL;
-console.log(BASE_URL, 'BASE_URL');
+const API_URL = process.env.REACT_APP_API_URL;
 
 const schema = {
   userName: {
@@ -61,7 +60,7 @@ const useStyles = makeStyles(theme => ({
 const LogIn = props => {
   const url = window.location.pathname.split('/')[2];
   const dispatch = useDispatch();
-  const socket = io(BASE_URL, { transports: ['websocket'] });
+  const socket = io(API_URL, { transports: ['websocket'] });
 
   const { history } = props;
 

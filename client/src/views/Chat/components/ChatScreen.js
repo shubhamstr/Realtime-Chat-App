@@ -22,10 +22,8 @@ import {
 } from '../../../api/chat';
 import { logOut } from '../../../store/authSlice';
 
-const BASE_URL = process.env.REACT_APP_BASE_URL;
-console.log(BASE_URL, 'BASE_URL');
+const API_URL = process.env.REACT_APP_API_URL;
 const CLIENT_URL = process.env.REACT_APP_CLIENT_URL;
-console.log(CLIENT_URL, 'CLIENT_URL');
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 const DEFAULT_USER_AVATAR = '/images/avatars/user.svg';
 const INCOMING_USER_AVATAR = '/images/avatars/user-incoming.svg';
@@ -222,7 +220,7 @@ const ChatScreen = () => {
   const { userDetails } = auth;
   const socketRef = useRef(null);
   if (!socketRef.current) {
-    socketRef.current = io(BASE_URL, {
+    socketRef.current = io(API_URL, {
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
