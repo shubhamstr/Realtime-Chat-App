@@ -30,7 +30,7 @@ jobs:
 
       - name: Generate client .env file
         run: |
-          echo "REACT_APP_BASE_URL=${{ vars.REACT_APP_BASE_URL }}" > ./client/.env
+          echo "REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}" > ./client/.env
           echo "REACT_APP_CLIENT_URL=${{ vars.REACT_APP_CLIENT_URL }}" >> ./client/.env
           echo "--- client/.env contents ---"
           cat ./client/.env
