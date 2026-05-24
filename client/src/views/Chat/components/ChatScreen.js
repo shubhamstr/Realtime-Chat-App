@@ -12,6 +12,9 @@ import {
   ConversationHeader
 } from '@chatscope/chat-ui-kit-react';
 import { makeStyles } from '@material-ui/styles';
+import Menu from '@material-ui/core/Menu';
+import MenuItem from '@material-ui/core/MenuItem';
+// import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import {
@@ -96,24 +99,52 @@ const useStyles = makeStyles(() => ({
     flexShrink: 0
   },
   messageShell: {
-    position: 'relative'
+    position: 'relative',
+    '&:hover $messageActions': {
+      opacity: 1,
+      pointerEvents: 'auto'
+    }
+  },
+  messageActions: {
+    position: 'absolute',
+    top: 6,
+    right: 52,
+    opacity: 0,
+    pointerEvents: 'none',
+    transition: 'opacity 0.15s ease',
+    zIndex: 2
   },
   deleteButton: {
-    position: 'absolute',
-    top: -6,
-    right: 40,
-    width: 24,
-    height: 24,
-    borderRadius: '50%',
-    border: '1px solid rgba(239, 68, 68, 0.28)',
-    background: '#fff',
-    color: '#dc2626',
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    border: '1px solid rgba(148, 163, 184, 0.22)',
+    background: 'rgba(255, 255, 255, 0.96)',
+    color: '#64748b',
     cursor: 'pointer',
     display: 'grid',
     placeItems: 'center',
+    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
+    transition: 'color 0.15s ease, background 0.15s ease, border-color 0.15s ease',
+    '&:hover': {
+      color: '#dc2626',
+      background: '#fef2f2',
+      borderColor: 'rgba(239, 68, 68, 0.35)'
+    },
+    '&:focus': {
+      outline: 'none',
+      boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.25)'
+    }
+  },
+  contextMenuItem: {
     fontSize: 14,
-    lineHeight: 1,
-    boxShadow: '0 6px 16px rgba(15, 23, 42, 0.12)'
+    gap: 10,
+    color: '#dc2626'
+  },
+  contextMenuIcon: {
+    fontSize: 18,
+    marginRight: 10,
+    color: '#dc2626'
   },
   settingsButton: {
     border: '1px solid rgba(148, 163, 184, 0.28)',
@@ -214,6 +245,7 @@ const ChatScreen = () => {
   const [browserAlertEnabled, setBrowserAlertEnabled] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [messageMenu, setMessageMenu] = useState(null);
   const [browserPermissionState, setBrowserPermissionState] = useState(
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   );
@@ -479,6 +511,17 @@ const ChatScreen = () => {
     reader.readAsDataURL(file);
   };
 
+  const closeMessageMenu = () => setMessageMenu(null);
+
+  const handleMessageContextMenu = (event, chat) => {
+    event.preventDefault();
+    setMessageMenu({
+      mouseX: event.clientX - 2,
+      mouseY: event.clientY - 4,
+      chat
+    });
+  };
+
   const handleDeleteMessage = chat => {
     const messageId = chat._id || chat.id;
 
@@ -513,6 +556,13 @@ const ChatScreen = () => {
         })
       );
     });
+  };
+
+  const handleDeleteFromMenu = () => {
+    if (messageMenu?.chat) {
+      handleDeleteMessage(messageMenu.chat);
+    }
+    closeMessageMenu();
   };
 
   const handleLogOut = () => {
@@ -731,18 +781,28 @@ const ChatScreen = () => {
                       : 'incoming';
 
                   return (
-                    <div className={classes.messageShell} key={`${chat.id || index}-${chat.created_on || 'msg'}`}>
-                      {dir === 'outgoing' ? (
-                        <button
-                          aria-label="Delete message"
-                          className={classes.deleteButton}
-                          onClick={() => handleDeleteMessage(chat)}
-                          title="Delete message"
-                          type="button"
-                        >
-                          ×
-                        </button>
-                      ) : null}
+                    <div
+                      className={classes.messageShell}
+                      key={`${chat.id || index}-${chat.created_on || 'msg'}`}
+                      onContextMenu={
+                        dir === 'outgoing'
+                          ? event => handleMessageContextMenu(event, chat)
+                          : undefined
+                      }
+                    >
+                      {/* {dir === 'outgoing' ? (
+                        <div className={classes.messageActions}>
+                          <button
+                            aria-label="Delete message"
+                            className={classes.deleteButton}
+                            onClick={() => handleDeleteMessage(chat)}
+                            title="Delete message (right-click for menu)"
+                            type="button"
+                          >
+                            <DeleteOutlineIcon style={{ fontSize: 18 }} />
+                          </button>
+                        </div>
+                      ) : null} */}
                       <Message
                         model={{
                           message: chat.message,
@@ -794,6 +854,21 @@ const ChatScreen = () => {
           </ChatContainer>
         )}
       </MainContainer>
+      <Menu
+        anchorPosition={
+          messageMenu !== null
+            ? { top: messageMenu.mouseY, left: messageMenu.mouseX }
+            : undefined
+        }
+        anchorReference="anchorPosition"
+        onClose={closeMessageMenu}
+        open={messageMenu !== null}
+      >
+        <MenuItem className={classes.contextMenuItem} onClick={handleDeleteFromMenu}>
+          {/* <DeleteOutlineIcon className={classes.contextMenuIcon} /> */}
+          Delete
+        </MenuItem>
+      </Menu>
       {showNotificationModal ? (
         <div className={classes.modalBackdrop} onClick={() => setShowNotificationModal(false)} role="presentation">
           <div className={classes.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
