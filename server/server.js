@@ -12,10 +12,18 @@ const chat = require("./routes/chat")
 const PORT = process.env.PORT || 5000
 const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000"
 const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`
-const allowedOrigins = new Set([
-  CLIENT_URL,
-  SERVER_URL,
-])
+
+const normalizeOrigin = (url) => String(url || "").trim().replace(/\/$/, "")
+
+const allowedOrigins = new Set(
+  [
+    CLIENT_URL,
+    SERVER_URL,
+    ...(process.env.ALLOWED_ORIGINS || "").split(","),
+  ]
+    .map(normalizeOrigin)
+    .filter(Boolean)
+)
 
 app.use(express.static(__dirname + "/public"))
 app.use(express.json({ limit: "20mb" }))
