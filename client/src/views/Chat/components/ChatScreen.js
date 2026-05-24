@@ -757,7 +757,7 @@ const ChatScreen = () => {
                 <SendButton
                   border
                   onClick={() => {
-                    navigator.clipboard.writeText(`${CLIENT_URL}/login/${url}`);
+                    navigator.clipboard.writeText(`${CLIENT_URL}/chat/${url}`);
                     alert('Chat link copied to clipboard');
                   }}
                   style={{ padding: '0px 10px' }}

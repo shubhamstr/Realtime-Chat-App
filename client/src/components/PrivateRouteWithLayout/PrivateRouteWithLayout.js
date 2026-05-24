@@ -18,7 +18,9 @@ const PrivateRouteWithLayout = props => {
         ) : (
           <Redirect
             to={{
-              pathname: '/login',
+              pathname: matchProps.match.params.url
+                ? `/login/${matchProps.match.params.url}`
+                : '/login',
             }}
           />
         )

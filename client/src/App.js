@@ -31,6 +31,9 @@ class App extends Component {
   checkAuthAndRedirect = () => {
     const token = localStorage.getItem('chatToken');
     const chatURL = localStorage.getItem('chatURL');
+    const inviteMatch = window.location.pathname.match(/^\/chat\/([^/]+)/);
+    const inviteRoomId = inviteMatch ? inviteMatch[1] : null;
+
     if (token && token !== 'undefined' && token !== 'null') {
       this.setHeaderToken(token);
       const tokenDetails = jwtDecode(token);
@@ -43,8 +46,12 @@ class App extends Component {
         value: tokenDetails
       });
       this.props.logIn();
-      if (chatURL) {
-        browserHistory.push(`/chat/${chatURL}`);
+      const targetRoom = inviteRoomId || chatURL;
+      if (targetRoom) {
+        if (inviteRoomId) {
+          localStorage.setItem('chatURL', inviteRoomId);
+        }
+        browserHistory.push(`/chat/${targetRoom}`);
       }
     }
   };
