@@ -27,6 +27,7 @@ import ArrowForwardIcon from '@material-ui/icons/ArrowForward';
 import {
   getSavedChats,
   saveChat,
+  touchChat,
   deleteSavedChat
 } from '../../utils/chatStorage';
 
@@ -166,22 +167,31 @@ const useStyles = makeStyles(theme => ({
     paddingTop: theme.spacing(2),
     borderTop: '1px solid rgba(226, 232, 240, 0.8)'
   },
+  savedHeaderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: theme.spacing(1.5)
+  },
   savedHeader: {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
-    color: '#475569',
+    color: '#334155',
     fontSize: '0.85rem',
     fontWeight: 700,
-    marginBottom: theme.spacing(1.5),
     textTransform: 'uppercase',
     letterSpacing: 0.5
+  },
+  savedHint: {
+    fontSize: '0.75rem',
+    color: '#64748b'
   },
   savedList: {
     display: 'flex',
     flexDirection: 'column',
     gap: theme.spacing(1),
-    maxHeight: 180,
+    maxHeight: 200,
     overflowY: 'auto',
     paddingRight: 4
   },
@@ -189,18 +199,23 @@ const useStyles = makeStyles(theme => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '8px 12px',
-    borderRadius: 12,
-    background: 'rgba(241, 245, 249, 0.8)',
+    padding: '10px 14px',
+    borderRadius: 14,
+    background: 'rgba(241, 245, 249, 0.85)',
     border: '1px solid rgba(226, 232, 240, 0.8)',
     cursor: 'pointer',
-    transition: 'all 0.15s ease',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     '&:hover': {
       background: '#ffffff',
       borderColor: '#93c5fd',
-      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.08)',
-      transform: 'translateX(2px)'
+      boxShadow: '0 6px 16px rgba(37, 99, 235, 0.1)',
+      transform: 'translateY(-1px)'
     }
+  },
+  savedItemActive: {
+    background: '#eff6ff',
+    borderColor: '#3b82f6',
+    pointerEvents: 'none'
   },
   savedItemInfo: {
     display: 'flex',
@@ -211,9 +226,9 @@ const useStyles = makeStyles(theme => ({
     marginRight: 8
   },
   savedItemTitle: {
-    fontSize: '0.88rem',
+    fontSize: '0.9rem',
     fontWeight: 600,
-    color: '#1e293b'
+    color: '#0f172a'
   },
   savedItemTime: {
     fontSize: '0.72rem',
@@ -222,7 +237,19 @@ const useStyles = makeStyles(theme => ({
   savedItemActions: {
     display: 'flex',
     alignItems: 'center',
-    gap: 4
+    gap: 6
+  },
+  openAction: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '4px 10px',
+    borderRadius: 8,
+    background: 'rgba(37, 99, 235, 0.08)',
+    color: '#2563eb',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    transition: 'all 0.15s ease'
   },
   deleteBtn: {
     padding: 6,
@@ -242,13 +269,18 @@ const LogIn = props => {
 
   const [targetRoom, setTargetRoom] = useState(urlFromPath || '');
   const [submitting, setSubmitting] = useState(false);
+  const [openingRoomId, setOpeningRoomId] = useState(null);
   const [savedChats, setSavedChats] = useState([]);
 
-  const [formStateUserName, setFormStateUserName] = useState({
-    isValid: false,
-    values: {},
-    touched: {},
-    errors: {}
+  const [formStateUserName, setFormStateUserName] = useState(() => {
+    const savedName = localStorage.getItem('saved_username') || '';
+    const initialErrors = savedName ? validate({ userName: savedName }, schema) : null;
+    return {
+      isValid: !initialErrors && Boolean(savedName),
+      values: savedName ? { userName: savedName } : {},
+      touched: savedName ? { userName: true } : {},
+      errors: initialErrors || {}
+    };
   });
 
   useEffect(() => {
@@ -272,8 +304,109 @@ const LogIn = props => {
     }));
   };
 
-  const handleSelectSavedChat = roomId => {
-    setTargetRoom(roomId);
+  const handleOpenSavedChat = async (roomId, chatUsername) => {
+    if (submitting) return;
+
+    // 1. Check if an active valid token is already stored in localStorage
+    const existingToken = localStorage.getItem('chatToken');
+    if (existingToken && existingToken !== 'undefined' && existingToken !== 'null') {
+      try {
+        const tokenDetails = jwtDecode(existingToken);
+        setHeaderToken(existingToken);
+        localStorage.setItem('chatURL', roomId);
+        touchChat(roomId, tokenDetails.username || chatUsername);
+        dispatch(
+          setDetails({
+            type: 'userType',
+            value: 'user'
+          })
+        );
+        dispatch(
+          setDetails({
+            type: 'tokenDetails',
+            value: tokenDetails
+          })
+        );
+        dispatch(logIn());
+        history.push(`/chat/${roomId}`);
+        return;
+      } catch (e) {
+        localStorage.removeItem('chatToken');
+      }
+    }
+
+    // 2. Resolve username
+    let username =
+      formStateUserName.values.userName?.trim() ||
+      chatUsername?.trim() ||
+      localStorage.getItem('saved_username')?.trim();
+
+    if (!username) {
+      username = window.prompt('Please enter your nickname to open this chat:');
+      if (!username || !username.trim()) {
+        setTargetRoom(roomId);
+        return;
+      }
+      username = username.trim();
+      setFormStateUserName({
+        isValid: true,
+        values: { userName: username },
+        touched: { userName: true },
+        errors: {}
+      });
+    }
+
+    setSubmitting(true);
+    setOpeningRoomId(roomId);
+
+    try {
+      const resp = await signInApi({
+        loginType: 'userName',
+        userName: username,
+        room_id: roomId
+      });
+
+      if (resp.data.err) {
+        alert(resp.data.msg);
+        setSubmitting(false);
+        setOpeningRoomId(null);
+        return;
+      }
+
+      const roomURL = resp.data.chatURL;
+      const token = resp.data.data;
+
+      // Connect socket
+      const socket = io(API_URL, { transports: ['websocket'] });
+      socket.emit('connected', username);
+
+      setHeaderToken(token);
+      localStorage.setItem('chatToken', token);
+      localStorage.setItem('chatURL', roomURL);
+      localStorage.setItem('saved_username', username);
+
+      saveChat(roomURL, `Room ${roomURL.slice(0, 8)}...`, username);
+
+      const tokenDetails = jwtDecode(token);
+      dispatch(
+        setDetails({
+          type: 'userType',
+          value: 'user'
+        })
+      );
+      dispatch(
+        setDetails({
+          type: 'tokenDetails',
+          value: tokenDetails
+        })
+      );
+      dispatch(logIn());
+      history.push(`/chat/${roomURL}`);
+    } catch (err) {
+      alert(err?.response?.data?.msg || err?.message || 'Failed to open chat');
+      setSubmitting(false);
+      setOpeningRoomId(null);
+    }
   };
 
   const handleDeleteSavedChat = (e, roomId) => {
@@ -324,9 +457,10 @@ const LogIn = props => {
       setHeaderToken(token);
       localStorage.setItem('chatToken', token);
       localStorage.setItem('chatURL', roomURL);
+      localStorage.setItem('saved_username', username);
 
-      // Save room into local storage with updated timestamp
-      saveChat(roomURL, `Room ${roomURL.slice(0, 8)}...`);
+      // Save room into local storage with updated timestamp & username
+      saveChat(roomURL, `Room ${roomURL.slice(0, 8)}...`, username);
 
       const tokenDetails = jwtDecode(token);
       dispatch(
@@ -433,7 +567,7 @@ const LogIn = props => {
             type="submit"
             variant="contained"
           >
-            {submitting ? (
+            {submitting && !openingRoomId ? (
               <CircularProgress color="inherit" size={24} />
             ) : (
               targetRoom ? 'Join Chat Room' : 'Start New Chat'
@@ -443,40 +577,57 @@ const LogIn = props => {
 
         {savedChats.length > 0 && (
           <div className={classes.savedSection}>
-            <div className={classes.savedHeader}>
-              <HistoryIcon style={{ fontSize: 16 }} />
-              <span>Saved Chats ({savedChats.length})</span>
+            <div className={classes.savedHeaderRow}>
+              <div className={classes.savedHeader}>
+                <HistoryIcon style={{ fontSize: 16 }} />
+                <span>Saved Chatbots ({savedChats.length})</span>
+              </div>
+              <span className={classes.savedHint}>Click to open directly</span>
             </div>
             <div className={classes.savedList}>
-              {savedChats.map(item => (
-                <div
-                  className={classes.savedItem}
-                  key={item.roomId}
-                  onClick={() => handleSelectSavedChat(item.roomId)}
-                  title="Click to open this room"
-                >
-                  <div className={classes.savedItemInfo}>
-                    <span className={classes.savedItemTitle}>
-                      {item.title || item.roomId}
-                    </span>
-                    <span className={classes.savedItemTime}>
-                      {formatTimeAgo(item.lastUsed || item.createdAt)}
-                    </span>
+              {savedChats.map(item => {
+                const isOpening = openingRoomId === item.roomId;
+                return (
+                  <div
+                    className={`${classes.savedItem} ${isOpening ? classes.savedItemActive : ''}`}
+                    key={item.roomId}
+                    onClick={() => handleOpenSavedChat(item.roomId, item.username)}
+                    title="Click to open this chatbot directly"
+                  >
+                    <div className={classes.savedItemInfo}>
+                      <span className={classes.savedItemTitle}>
+                        {item.title || item.roomId}
+                      </span>
+                      <span className={classes.savedItemTime}>
+                        {item.username ? `User: ${item.username} • ` : ''}
+                        {formatTimeAgo(item.lastUsed || item.createdAt)}
+                      </span>
+                    </div>
+                    <div className={classes.savedItemActions}>
+                      <Tooltip title="Delete saved chat">
+                        <IconButton
+                          className={classes.deleteBtn}
+                          disabled={isOpening}
+                          onClick={e => handleDeleteSavedChat(e, item.roomId)}
+                          size="small"
+                        >
+                          <DeleteOutlineIcon style={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <div className={classes.openAction}>
+                        {isOpening ? (
+                          <CircularProgress color="inherit" size={14} />
+                        ) : (
+                          <>
+                            <span>Open</span>
+                            <ArrowForwardIcon style={{ fontSize: 14 }} />
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className={classes.savedItemActions}>
-                    <Tooltip title="Delete saved chat">
-                      <IconButton
-                        className={classes.deleteBtn}
-                        onClick={e => handleDeleteSavedChat(e, item.roomId)}
-                        size="small"
-                      >
-                        <DeleteOutlineIcon style={{ fontSize: 18 }} />
-                      </IconButton>
-                    </Tooltip>
-                    <ArrowForwardIcon style={{ fontSize: 18, color: '#2563eb' }} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

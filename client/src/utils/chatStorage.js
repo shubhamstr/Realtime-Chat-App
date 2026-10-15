@@ -48,9 +48,10 @@ export function getSavedChats() {
  *
  * @param {string} roomId
  * @param {string} [title]
+ * @param {string} [username]
  * @returns {Array} Updated chats array
  */
-export function saveChat(roomId, title) {
+export function saveChat(roomId, title, username) {
   if (!roomId || typeof window === 'undefined' || !window.localStorage) {
     return [];
   }
@@ -63,12 +64,14 @@ export function saveChat(roomId, title) {
     chats[existingIndex] = {
       ...chats[existingIndex],
       lastUsed: now,
-      title: title || chats[existingIndex].title || `Room ${roomId.slice(0, 8)}...`
+      title: title || chats[existingIndex].title || `Room ${roomId.slice(0, 8)}...`,
+      username: username || chats[existingIndex].username || undefined
     };
   } else {
     chats.unshift({
       roomId,
       title: title || `Room ${roomId.slice(0, 8)}...`,
+      username: username || undefined,
       createdAt: now,
       lastUsed: now
     });
@@ -85,13 +88,14 @@ export function saveChat(roomId, title) {
 }
 
 /**
- * Touches a chat room to refresh its lastUsed timestamp.
+ * Touches a chat room to refresh its lastUsed timestamp and optionally keep username updated.
  *
  * @param {string} roomId
+ * @param {string} [username]
  */
-export function touchChat(roomId) {
+export function touchChat(roomId, username) {
   if (!roomId) return;
-  saveChat(roomId);
+  saveChat(roomId, undefined, username);
 }
 
 /**

@@ -329,9 +329,9 @@ const ChatScreen = () => {
   // Touch current chat in localStorage
   useEffect(() => {
     if (url) {
-      touchChat(url);
+      touchChat(url, userDetails?.username);
     }
-  }, [url, chatList.length]);
+  }, [url, chatList.length, userDetails?.username]);
 
   // Document focus & In-App Notification count handling
   const resetNotifications = useCallback(() => {

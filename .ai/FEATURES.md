@@ -89,7 +89,7 @@
 ---
 
 ### 2.7 Feature: Saved Chats LocalStorage & 30-Day Auto-Purge
-- **Description:** All visited and created chats are persisted in browser `localStorage` (`saved_chats`) with `roomId`, `title`, and `lastUsed` timestamps. Whenever the chat list is retrieved on login or startup, any chat unused for more than 30 days (1 month) is automatically purged from `localStorage`. Users can see, open, or delete saved chats from the modern Login screen.
+- **Description:** All visited and created chats/chatbots are persisted in browser `localStorage` (`saved_chats`) with `roomId`, `title`, `username`, and `lastUsed` timestamps. Whenever the chat list is retrieved on login or startup, any chat unused for more than 30 days (1 month) is automatically purged from `localStorage`. The modern Login screen lists all saved chatbots and allows users to launch and open them directly with a single click. The user's nickname is remembered across sessions (`saved_username`) and auto-prefilled.
 - **Client Implementation:** [client/src/utils/chatStorage.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/utils/chatStorage.js) and [client/src/views/LogIn/LogIn.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/LogIn/LogIn.js).
 - **Database TTL:** MongoDB messages also feature a 30-day TTL index on `createdAt` (`expireAfterSeconds: 2592000`).
 
