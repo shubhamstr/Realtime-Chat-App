@@ -1,0 +1,62 @@
+Read `.ai/NEW_FEATURE_PROMPT.md`.
+
+Feature Request:
+
+Add a wishlist feature.
+
+Users should be able to:
+- Add products to wishlist
+- Remove products
+- View wishlist
+- Move a wishlist product to cart
+- See wishlist status on product cards
+
+
+
+
+Read `.ai/AI_TASK_PROMPT.md`.
+
+Type: BUG FIX
+
+Requirement:
+The login API sometimes returns 401 after the access token expires.
+Find the root cause and fix it.
+
+
+
+Read `.ai/AI_TASK_PROMPT.md`.
+
+Type: REFACTOR
+
+Requirement:
+The user authentication logic is duplicated across multiple controllers.
+Refactor it into a reusable service without changing existing behavior.
+
+
+
+Read `.ai/AI_TASK_PROMPT.md`.
+
+Type: NEW FEATURE
+
+Requirement:
+Add Google OAuth login to the application.
+
+
+
+Read `.ai/AI_TASK_PROMPT.md`.
+
+Type: PERFORMANCE
+
+Requirement:
+The product listing API is slow when there are more than 100,000 products.
+Analyze the bottleneck and optimize it without changing the API response format.
+
+
+
+Read `.ai/AI_TASK_PROMPT.md`.
+
+Type: SECURITY
+
+Requirement:
+Review the authentication APIs for common security vulnerabilities and fix the issues you find.
+
