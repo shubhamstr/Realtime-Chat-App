@@ -14,7 +14,7 @@
 | **Browser Web Notifications** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | None (Client-side HTML5 API) | None |
 | **Email Message Alerts (SMTP)** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js) | `updateUser` (`email`, flags) |
 | **Share Link Copying** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | None (Clipboard API) | None |
-| **Dual Database Switching** | Active | None (Transparent) | [db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js) | `mysql.js` or `mongo.js` |
+| **MongoDB Data Persistence** | Active | None (Transparent) | [db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js) | `mongo.js` |
 | **User Profile / Password Update**| Stubbed/Dead| [api/users.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/api/users.js) | [routes/users.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/users.js) | `updateUser` |
 | **User Registration Endpoint** | Broken/Dead | [api/auth.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/api/auth.js) (`signUpApi`)| Missing on server | None |
 

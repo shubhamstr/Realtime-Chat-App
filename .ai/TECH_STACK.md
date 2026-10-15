@@ -29,9 +29,8 @@
 | **CORS Middleware** | cors | `^2.8.5` | Cross-origin resource sharing configuration |
 | **Config / Environment** | dotenv | `^16.4.5` | Loading environment variables from `.env` files |
 | **Email Transport** | nodemailer | `^6.9.15` | SMTP email dispatch for chat notifications |
-| **Relational Database** | MySQL / MariaDB (Driver: `mysql`) | `^2.18.1` (DB: MySQL `8.0`) | SQL storage engine for users and messages |
 | **Document Database** | MongoDB (Driver: `mongoose`) | `^8.23.1` (DB: Mongo `7.0`) | NoSQL storage engine for users and messages |
-| **Containerization** | Docker & Docker Compose | Compose `v3.9` | Containerization for client, server, MySQL, and Mongo |
+| **Containerization** | Docker & Docker Compose | Compose `v3.9` | Containerization for client, server, and MongoDB |
 | **Web Server / Reverse Proxy**| Nginx (Alpine) | `nginx:alpine` | Production static asset server and SPA routing for client |
 | **CI / CD** | GitHub Actions | `v4` / `v5` actions | Automated building, container pushing to OCIR, and SSH deployment |
 
@@ -42,9 +41,7 @@
 ### 2.1 Backend Runtime & Libraries
 - **Node.js + Express:** Standard minimalist JavaScript backend suitable for JSON APIs and fast asynchronous I/O.
 - **Socket.IO:** Simplifies room-based multiplexing with automatic fallback, reconnection handling, and room isolation (`socket.join(roomName)`).
-- **Dual Drivers (`mysql` and `mongoose`):**
-  - Allows running in either traditional relational environments (LAMP/MySQL) or modern cloud document databases (MongoDB) via a single toggle (`DB_PROVIDER`).
-  - Note: The `mysql` package (v2.18.1) is an older legacy callback client rather than the promise-ready `mysql2`. The codebase manually wraps queries in `new Promise(...)` in [server/db/mysql.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mysql.js#L16-L24).
+- **Mongoose / MongoDB:** Modern cloud document database with high performance, indexing, and flexible schema handling for realtime messaging.
 - **Nodemailer:** Simple zero-dependency SMTP client for dispatching optional asynchronous message notifications to recipient email addresses.
 
 ### 2.2 Frontend Framework & UI

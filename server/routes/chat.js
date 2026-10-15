@@ -74,7 +74,7 @@ router.post("/insert", (req, res) => {
           username: req.body.username || "Someone",
           message: payload.message,
           attachment: payload.attachment,
-          messageId: result?._id || result?.insertId || "",
+          messageId: result?._id || "",
         })
       }
 
@@ -87,7 +87,7 @@ router.post("/insert", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: err.sqlMessage ? err.sqlMessage : "Server Error (insert)",
+        msg: err.message || "Server Error (insert)",
         data: err,
       })
     })
@@ -119,7 +119,7 @@ router.post("/update-notification-email", (req, res) => {
     .catch((err) => {
       return res.send({
         err: true,
-        msg: err.sqlMessage ? err.sqlMessage : "Server Error (update-notification-email)",
+        msg: err.message || "Server Error (update-notification-email)",
         data: err,
       })
     })
@@ -166,14 +166,7 @@ router.delete("/delete", (req, res) => {
 
   db.deleteMessage({ id, user_id, room_id })
     .then((result) => {
-      let isError = !result;
-      // console.log(process.env.DB_PROVIDER, 'process.env.DB_PROVIDER')
-      if (process.env.DB_PROVIDER === "mongo") {
-        isError = result.deletedCount === 0;
-      } else {
-        isError = !result.affectedRows;
-      }
-      // console.log(isError, 'isError')
+      const isError = !result || result.deletedCount === 0
       if (isError) {
         return res.send({
           err: true,
@@ -201,7 +194,7 @@ router.delete("/delete", (req, res) => {
       console.log(err)
       return res.send({
         err: true,
-        msg: err.sqlMessage ? err.sqlMessage : "Server Error (delete)",
+        msg: err.message || "Server Error (delete)",
         data: err,
       })
     })

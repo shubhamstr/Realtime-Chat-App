@@ -18,7 +18,7 @@ Realtime-Chat-App/
 │       ├── App.js              # Theme provider & root session coordinator
 │       └── Routes.js           # Route declarations and layout mappings
 ├── server/                     # Backend Node.js / Express application
-│   ├── db/                     # Database adapters (index.js, mysql.js, mongo.js)
+│   ├── db/                     # Database layer (index.js, mongo.js)
 │   ├── routes/                 # Express route handlers (auth.js, chat.js, users.js)
 │   └── server.js               # Express app bootstrap, CORS, and Socket.IO
 ├── .github/workflows/          # Deployment and CI/CD automation

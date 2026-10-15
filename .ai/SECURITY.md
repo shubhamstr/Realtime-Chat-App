@@ -43,13 +43,8 @@
 ## 4. Database & Credential Security
 
 ### 4.1 Plaintext Passwords
-- **Current Behavior:** The database schema has a `password` field, and [server/routes/users.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/users.js#L92) allows updating passwords without hashing (no bcrypt, Argon2, or PBKDF2).
+- **Current Behavior:** The database schema has a `password` field, and [server/routes/users.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/users.js#L72) allows updating passwords without hashing (no bcrypt, Argon2, or PBKDF2).
 - **Risk Level:** **High** (if password authentication is enabled in future releases).
-
-### 4.2 SQL Injection Protection Status
-- **Current Behavior:** In [server/db/mysql.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mysql.js), queries use string interpolation but wrap parameters using `mysql.escape(...)` (e.g., `WHERE username = ${mysql.escape(username)}`).
-- **Assessment:** While `mysql.escape()` mitigates standard SQL injections, it is more error-prone than prepared statements (`db.query('SELECT * FROM users WHERE username = ?', [username])`).
-- **Risk Level:** **Medium**
 
 ---
 
@@ -71,13 +66,8 @@
   ```bash
   cat ./server/.env
   ```
-  This dumps database passwords (`DB_PASS`, `MONGO_URI`) directly into public/private GitHub Actions execution logs.
-- In [oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml#L80) and [oci-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-client.yml#L70), the workflow executes `docker exec <container> cat .env`.
-- In [.github/workflows/deploy-mysql.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/deploy-mysql.yml#L34), MySQL is started with:
-  ```bash
-  -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306
-  ```
-  Exposing an unauthenticated root MySQL server directly to the internet on port 3306 is an immediate security hazard.
+  This dumps database credentials (`MONGO_URI`) directly into execution logs.
+- In [oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml#L74) and [oci-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-client.yml#L70), the workflow executes `docker exec <container> cat .env`.
 - **Risk Level:** **Critical**
 
 ---
@@ -87,5 +77,5 @@
 1. **Implement JWT Auth Middleware:** Create an Express middleware that validates `req.headers.authorization`, verifies the signature using `process.env.JWT_SECRET_KEY`, and attaches `req.user = decodedToken`.
 2. **Derive Identity Server-Side:** In `/chat/insert` and `/chat/delete`, extract `user_id` strictly from `req.user.userId` instead of `req.body.user_id`.
 3. **Remove `cat .env` from CI/CD:** Delete the debugging lines echoing credentials into workflow run logs.
-4. **Use Docker Internal Networks:** Stop exposing database ports (`3306`, `27017`) to `0.0.0.0`; connect services via Docker bridge networks.
-5. **Secure Database Credentials:** Set strong passwords for MySQL and MongoDB containers in production.
+4. **Use Docker Internal Networks:** Stop exposing database ports (`27017`) to `0.0.0.0`; connect services via Docker bridge networks.
+5. **Secure Database Credentials:** Set strong authentication for MongoDB in production.

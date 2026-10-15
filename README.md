@@ -1,20 +1,20 @@
 # Realtime Chat App
 
-A realtime chat application built with React, Socket.IO, Express, and a swappable backend database layer. Users can join a shared chat room, send live messages, and keep a simple message history backed by either MySQL or MongoDB.
+A realtime chat application built with React, Socket.IO, Express, and MongoDB. Users can join a shared chat room, send live messages, and keep a simple message history backed by MongoDB.
 
 ## Features
 
 - Realtime messaging with Socket.IO
 - Username-based login and room creation
 - Shared chat room links
-- Message history stored in MySQL or MongoDB
+- Message history stored in MongoDB
 - User profile and notification update APIs
 
 ## Tech Stack
 
 - Frontend: React, Redux Toolkit, Material UI, Chat Scope UI Kit
 - Backend: Node.js, Express, Socket.IO
-- Database: MySQL or MongoDB
+- Database: MongoDB (Mongoose)
 
 ## Project Structure
 
@@ -24,7 +24,7 @@ A realtime chat application built with React, Socket.IO, Express, and a swappabl
 ## Prerequisites
 
 - Node.js 16+ recommended
-- MySQL server or MongoDB server
+- MongoDB server (local instance or Docker)
 - npm
 
 ## Setup
@@ -36,20 +36,17 @@ Create `server/.env` with values similar to:
 ```env
 PORT=5000
 JWT_SECRET_KEY=socket_secret_chat
-DB_PROVIDER=mysql
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASS=
-DB_NAME=socket_chat
 MONGO_URI=mongodb://127.0.0.1:27017/socket_chat
+CLIENT_URL=http://localhost:3000
+SERVER_URL=http://localhost:5000
 ```
 
-Import the database schema from:
+To run MongoDB via Docker compose:
 
-`server/db/socket_chat.sql`
-
-To switch to MongoDB, set `DB_PROVIDER=mongo` and provide `MONGO_URI`. The server will use the Mongo adapter automatically.
+```bash
+cd server
+npm run db
+```
 
 ### 2. Configure the client
 

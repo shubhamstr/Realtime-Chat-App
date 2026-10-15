@@ -67,26 +67,6 @@ router.post("/update-personal", (req, res) => {
     })
 })
 
-// router.post("/update-image", (req, res) => {
-//   // console.log(req.body);
-//   var sql = `UPDATE users SET image = '${req.body.image}' WHERE id = ${req.body.id}`
-//   db.query(sql, function (err, result) {
-//     if (err) {
-//       return res.send({
-//         err: true,
-//         msg: "Server Error",
-//         data: err,
-//       })
-//     }
-//     // console.log(result)
-//     return res.send({
-//       err: false,
-//       msg: "User Image Updated Successfully!!",
-//       data: result,
-//     })
-//   })
-// })
-
 router.post("/update-password", (req, res) => {
   db.updateUser(req.body.id, {
     password: req.body.newPassword,
@@ -106,25 +86,5 @@ router.post("/update-password", (req, res) => {
       })
     })
 })
-
-// router.post("/delete", (req, res) => {
-//   // console.log(req.body);
-//   var sql = `DELETE FROM users WHERE id = ${req.body.id}`
-//   db.query(sql, function (err, result) {
-//     if (err) {
-//       return res.send({
-//         err: true,
-//         msg: "Server Error",
-//         data: err,
-//       })
-//     }
-//     // console.log(result)
-//     return res.send({
-//       err: false,
-//       msg: "User Deleted Successfully!!",
-//       data: result,
-//     })
-//   })
-// })
 
 module.exports = router

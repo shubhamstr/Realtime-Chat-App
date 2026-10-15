@@ -11,7 +11,7 @@
 1. **Grounded Implementation:** Never invent patterns, abstractions, or libraries that do not exist in this project.
 2. **Minimal & Surgical Changes:** Prefer the smallest, cleanest diff that solves the problem. Never touch unrelated files or refactor code outside the immediate scope of the task.
 3. **Reuse Before Creating:** Before creating any new component, utility, route, API client, or database query, search the codebase for an existing solution to reuse or extend.
-4. **Dual Database Requirement:** Any feature touching data persistence **MUST** be implemented identically for both **MySQL** ([server/db/mysql.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mysql.js)) and **MongoDB** ([server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js)).
+4. **Database Requirement:** All data persistence is handled exclusively via **MongoDB** ([server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js)).
 5. **No Secrets or Hardcoded Config:** Never hardcode credentials, URLs, ports, or secrets. Always consume configurations from environment variables.
 6. **Preserve Public APIs:** Maintain backward compatibility for all existing REST endpoints, Socket.IO events, and database adapter method signatures unless explicitly instructed.
 7. **Documentation Synchronization:** Whenever architecture, APIs, database schemas, or workflows change, the corresponding documentation under `.ai/` (e.g. `API.md`, `DATABASE.md`, `ARCHITECTURE.md`) **must** be updated in the same pull request.
@@ -23,16 +23,16 @@
 ### 2.1 Monorepo Structure
 The repository is split into two independent workspaces:
 - `client/`: React 16.8 SPA initialized with Create React App, styled with Material-UI v4 and `@chatscope/chat-ui-kit-react`.
-- `server/`: Node.js Express 4 server integrated with Socket.IO 4 and dual database adapters (MySQL / MongoDB).
+- `server/`: Node.js Express 4 server integrated with Socket.IO 4 and MongoDB (Mongoose).
 
 ### 2.2 Communication Architecture
 - **REST Endpoints:** Used for transactional persistence (auth, message storage, message deletion, user lookups, notification settings updates).
 - **Socket.IO:** Used for duplex real-time broadcasts (`room-message`, `message-deleted`, `typing`, `stopTyping`).
 - **REST & Socket Bridge:** Express routes broadcast to rooms using `req.app.get("io").to(roomId).emit(...)`.
 
-### 2.3 Database Adapter Pattern
-- [server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js) dynamically loads the adapter based on `process.env.DB_PROVIDER` (`'mysql'` vs `'mongo'`).
-- Both adapters must export the exact same async function signatures and return compatible data structures.
+### 2.3 Database Layer
+- [server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js) exports the MongoDB database methods from [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js).
+- All queries use Mongoose models (`User`, `Message`) returning lean documents (`.lean()`).
 
 ---
 
@@ -55,11 +55,9 @@ Realtime-Chat-App/
 │       ├── App.js             # Root container, auth bootstrapping, theme provider
 │       └── Routes.js          # React Router v5 route definitions
 └── server/
-    ├── db/                    # Database abstraction layer
-    │   ├── index.js           # Dynamic provider selector
-    │   ├── mysql.js           # MySQL raw queries (mysql driver)
-    │   ├── mongo.js           # Mongoose schemas & queries
-    │   └── socket_chat.sql    # Relational SQL schema dump
+    ├── db/                    # Database layer (MongoDB)
+    │   ├── index.js           # Database interface export
+    │   └── mongo.js           # Mongoose schemas & queries
     ├── routes/                # Express router modules (auth.js, chat.js, users.js)
     └── server.js              # Application entry point, HTTP server, CORS, Socket.IO
 ```
@@ -69,7 +67,7 @@ Realtime-Chat-App/
 - **New Shared Components:** Place in `client/src/components/<ComponentName>/`.
 - **New API Clients:** Place in `client/src/api/<resource>.js`, importing the base instance from `client/src/api/api-client.js`.
 - **New Server Routes:** Place in `server/routes/<resource>.js` and mount in `server/server.js`.
-- **New Database Queries:** Add method to both `server/db/mysql.js` AND `server/db/mongo.js`. Do not write database queries inside route handlers.
+- **New Database Queries:** Add method to `server/db/mongo.js` and export in `server/db/index.js`. Do not write database queries inside route handlers.
 
 ---
 
@@ -83,10 +81,9 @@ Realtime-Chat-App/
 | **API Client Functions** | `camelCase` with `API` / `Api` suffix | `sendMessageAPI`, `getAllChatAPI`, `signInApi` |
 | **Redux Slices** | `camelCaseSlice.js` | `authSlice.js` |
 | **Route Handler Files** | `camelCase.js` | `auth.js`, `chat.js`, `users.js` |
-| **SQL Columns** | `snake_case` | `user_id`, `room_id`, `email_notification_flag` |
-| **Mongoose Fields** | `snake_case` (mirrors SQL) | `user_id`, `room_id`, `email_notification_flag` |
+| **Mongoose Fields** | `snake_case` | `user_id`, `room_id`, `email_notification_flag` |
 | **Socket.IO Events** | `camelCase` or `kebab-case` | `joinRoom`, `room-message`, `message-deleted`, `stopTyping` |
-| **Environment Variables** | `UPPER_SNAKE_CASE` | `DB_PROVIDER`, `JWT_SECRET_KEY`, `REACT_APP_API_URL` |
+| **Environment Variables** | `UPPER_SNAKE_CASE` | `MONGO_URI`, `JWT_SECRET_KEY`, `REACT_APP_API_URL` |
 
 ---
 
@@ -130,9 +127,9 @@ Realtime-Chat-App/
 2. **Real-time Event Emission:**
    - Access the Socket.IO instance via `const io = req.app.get("io")`.
    - Always emit to the targeted room: `io.to(room_id).emit(eventName, payload)`.
-3. **Dual Adapter Compliance:**
-   - When writing DB methods, ensure MySQL methods return `{ insertId }` or normalized objects, and Mongo methods return lean documents (`.lean()`).
-   - Note ID discrepancy: MySQL uses numeric `id`, MongoDB uses string/ObjectId `_id`. The client relies on `item.id || item._id`. Ensure new endpoints maintain this compatibility.
+3. **Database Operations:**
+   - Database operations use Mongoose models returning lean documents (`.lean()`).
+   - MongoDB documents use string/ObjectId `_id`. The client relies on `item._id || item.id`. Ensure new endpoints maintain this compatibility.
 
 ---
 
@@ -165,16 +162,10 @@ All REST API endpoints MUST return JSON with the following structure:
 
 ## 9. Database Evolution Rules
 
-1. **Dual Schema Maintenance:**
-   - If adding a field to `messages` or `users`, add it to:
-     1. [server/db/socket_chat.sql](file:///w:/shubham/personal/Realtime-Chat-App/server/db/socket_chat.sql) (or migration script).
-     2. Mongoose Schemas in [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js).
-     3. Query builders in [server/db/mysql.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mysql.js).
-2. **Preventing SQL Injections:**
-   - Current codebase uses `mysql.escape(value)`.
-   - For all new MySQL queries, use parameterized prepared statements: `db.query('SELECT * FROM users WHERE id = ?', [id])`.
-3. **Indexing:**
-   - Ensure foreign keys and filter fields (`room_id`, `user_id`) have indexes in both schemas.
+1. **Mongoose Schema Maintenance:**
+   - If adding a field to `messages` or `users`, add it to the Mongoose Schemas in [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js).
+2. **Indexing:**
+   - Ensure foreign keys and filter fields (`room_id`, `user_id`) have explicit indexes in schemas where queried.
 
 ---
 

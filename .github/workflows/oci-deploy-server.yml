@@ -32,15 +32,9 @@ jobs:
         run: |
           echo "PORT=5000" > ./server/.env
           echo "JWT_SECRET_KEY=socket_secret_chat" >> ./server/.env
-          echo "DB_PROVIDER=${{ vars.DB_PROVIDER }}" >> ./server/.env
           echo "CLIENT_URL=${{ vars.REACT_APP_CLIENT_URL }}" >> ./server/.env
           echo "SERVER_URL=${{ vars.REACT_APP_API_URL }}" >> ./server/.env
           echo "ALLOWED_ORIGINS=${{ vars.ALLOWED_ORIGINS }}" >> ./server/.env
-          echo "DB_HOST=${{ vars.DB_HOST }}" >> ./server/.env
-          echo "DB_PORT=${{ vars.DB_PORT }}" >> ./server/.env
-          echo "DB_USER=${{ vars.DB_USER }}" >> ./server/.env
-          echo "DB_PASS=${{ vars.DB_PASS }}" >> ./server/.env
-          echo "DB_NAME=${{ vars.DB_NAME }}" >> ./server/.env
           echo "MONGO_URI=${{ vars.MONGO_URI }}" >> ./server/.env
           echo "--- server/.env contents ---"
           cat ./server/.env

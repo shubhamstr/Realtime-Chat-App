@@ -4,7 +4,7 @@
 
 The **Realtime Chat App** is a full-stack, room-based instant messaging application designed for lightweight real-time communication. It allows users to log in quickly using only a username, generate or join specific chat rooms via encrypted or shared room IDs, exchange messages and image attachments, see real-time typing indicators, and receive browser and email notifications.
 
-The application features a pluggable database architecture that allows switching between **MySQL** and **MongoDB** via environment variables without altering the core messaging logic.
+The application features persistent document storage using **MongoDB** via Mongoose.
 
 ---
 
@@ -15,7 +15,7 @@ The application features a pluggable database architecture that allows switching
   - Ad-hoc chat rooms: Users can create a room, copy a shareable link, and invite others to chat instantly.
   - Lightweight collaboration: Guest-style access without tedious multi-step registration or email verification.
   - Asynchronous notifications: Desktop notifications when the browser tab is idle, and optional email alerts when new messages arrive.
-  - Multi-database deployment flexibility: Ability to run against relational MySQL or document-oriented MongoDB.
+  - Fast, document-oriented persistence with MongoDB.
 
 ---
 
@@ -23,7 +23,6 @@ The application features a pluggable database architecture that allows switching
 
 - **Guest / End User:** A participant who provides a username to enter a chat room. They can send and delete their own messages, attach images, toggle browser notifications, and configure an email address for message alerts.
 - **Room Initiator:** A user who initiates a session without an existing room URL, receiving an auto-generated URL-safe room token that can be shared with peers.
-- **Admin (Stubbed):** An `isAdmin` column exists in the MySQL schema ([socket_chat.sql](file:///w:/shubham/personal/Realtime-Chat-App/server/db/socket_chat.sql)), but there is currently no admin dashboard, role checking, or management UI implemented.
 
 ---
 
@@ -45,8 +44,8 @@ The application features a pluggable database architecture that allows switching
    - Native browser desktop notifications using the HTML5 Notification API.
    - Notification settings modal allowing users to save email alert preferences.
    - Server-side email notifications dispatched via Nodemailer SMTP upon message receipt.
-5. **Swappable Persistence Engine:**
-   - Abstraction layer in [server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js) routing calls to [server/db/mysql.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mysql.js) or [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js) according to `DB_PROVIDER`.
+5. **MongoDB Persistence:**
+   - Persistent database layer in [server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js) and [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js).
 
 ---
 

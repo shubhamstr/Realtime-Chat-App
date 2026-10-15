@@ -9,15 +9,13 @@ graph TD
     UserBrowser["User Browser (React SPA)"] -->|HTTP REST API (Axios)| ExpressServer["Express API Server (Node.js)"]
     UserBrowser <-->|WebSocket Events| SocketIOServer["Socket.IO Server (port 5000)"]
     ExpressServer -->|req.app.get('io')| SocketIOServer
-    ExpressServer -->|DB_PROVIDER routing| DBAccess["Database Abstraction (server/db/index.js)"]
-    DBAccess -->|DB_PROVIDER=mysql| MySQL["MySQL / MariaDB (Port 3306)"]
-    DBAccess -->|DB_PROVIDER=mongo| MongoDB["MongoDB (Port 27017)"]
+    ExpressServer -->|Database Queries| MongoDB["MongoDB via Mongoose (server/db/index.js)"]
     ExpressServer -->|SMTP Alert Trigger| Mailer["Nodemailer SMTP Server"]
 ```
 
 - **Frontend:** Single-page application written in React (16.8.6) leveraging Material-UI v4, Redux Toolkit, and `@chatscope/chat-ui-kit-react`.
 - **Backend:** Node.js (18) running Express 4 and Socket.IO 4 in an integrated HTTP server instance ([server/server.js](file:///w:/shubham/personal/Realtime-Chat-App/server/server.js)).
-- **Database Layer:** Dynamically loaded database adapter supporting either MySQL or MongoDB via a uniform JS interface.
+- **Database Layer:** MongoDB via Mongoose providing an asynchronous JS query interface ([server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js)).
 - **Messaging/Notifications:** Dual-channel notifications — in-browser Web Notifications and server-side SMTP email dispatch.
 
 ---
@@ -72,20 +70,11 @@ Socket.IO handlers are attached in [server/server.js](file:///w:/shubham/persona
 
 ---
 
-## 4. Dual Database Abstraction Layer
+## 4. Database Layer (MongoDB / Mongoose)
 
-A simple adapter pattern is implemented in [server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js):
+The database access layer is defined in [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js) and exported via [server/db/index.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/index.js):
 
-```javascript
-const provider = (process.env.DB_PROVIDER || "mysql").toLowerCase();
-if (provider === "mongo") {
-  module.exports = require("./mongo");
-} else {
-  module.exports = require("./mysql");
-}
-```
-
-Both [server/db/mysql.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mysql.js) and [server/db/mongo.js](file:///w:/shubham/personal/Realtime-Chat-App/server/db/mongo.js) expose an identical method contract:
+Methods exposed by the database module:
 - `getUserByUsername(username)`
 - `getUserById(id)`
 - `createUser({ username, chatURL })`
@@ -107,7 +96,7 @@ sequenceDiagram
     actor User as User Browser
     participant UI as ChatScreen.js
     participant REST as Express POST /chat/insert
-    participant DB as Database (MySQL / Mongo)
+    participant DB as MongoDB (Mongoose)
     participant Socket as Socket.IO Server
     participant SMTP as Nodemailer SMTP
     actor Peer as Peer Browsers in Room
@@ -116,7 +105,7 @@ sequenceDiagram
     UI->>UI: Appends optimistic message with temp ID ('tmp-...')
     UI->>REST: POST /chat/insert (user_id, room_id, message, attachment)
     REST->>DB: createMessage(payload)
-    DB-->>REST: Persisted message record (insertId or _id)
+    DB-->>REST: Persisted message record (_id)
     opt Email notifications enabled
         REST->>SMTP: sendMail() alert to configured email address
     end
@@ -133,14 +122,14 @@ sequenceDiagram
     actor User as User Browser
     participant UI as ChatScreen.js
     participant REST as Express DELETE /chat/delete
-    participant DB as Database (MySQL / Mongo)
+    participant DB as MongoDB (Mongoose)
     participant Socket as Socket.IO Server
     actor Peer as Peer Browsers in Room
 
     User->>UI: Right-clicks outgoing message -> selects Delete
     UI->>REST: DELETE /chat/delete { id, user_id, room_id }
     REST->>DB: deleteMessage({ id, user_id, room_id })
-    DB-->>REST: Affected rows / deleted count
+    DB-->>REST: Deleted count ({ deletedCount: 1 })
     REST->>Socket: io.to(room_id).emit('message-deleted', { messageId, roomName, user_id })
     Socket-->>Peer: Event: 'message-deleted'
     Peer->>Peer: Removes message from local chatList state
