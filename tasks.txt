@@ -1,0 +1,1 @@
+email alerts to be made in queue system if user is offline then only send email

@@ -61,8 +61,6 @@ The database layer provides standardized asynchronous methods:
 | `updateUser` | `User.updateOne({ _id: id }, { $set: fields })` | Mongoose update result (`acknowledged`, `modifiedCount`) |
 | `createMessage` | `Message.create(payload)` | Created Message document |
 | `getMessagesByRoomId`| `Message.find({ room_id: roomId }).lean()` | Array of Message documents |
-| `deleteMessage` | `Message.deleteOne(filter)` | Object with `{ deletedCount }` (or `{ deletedCount: 0, invalidId: true }` if ObjectId is invalid) |
-| `deleteMessagesByRoomId` | `Message.deleteMany({ room_id: roomId })` | Object with `{ deletedCount }` |
 | `updateMessage` | `Message.updateOne({ _id: id }, { $set: fields })` | Mongoose update result |
 
 ---

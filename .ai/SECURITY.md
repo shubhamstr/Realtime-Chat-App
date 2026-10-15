@@ -4,7 +4,7 @@
 
 ### 1.1 Unprotected Backend Endpoints (Missing Auth Middleware)
 - **Current Behavior:** Although the client sends an `Authorization: <token>` header on REST requests (configured via [client/src/App.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/App.js#L28)), the Express backend does not implement or mount any JWT verification middleware.
-- **Impact:** Any client can directly call `/chat/insert`, `/chat/delete`, `/chat/get-all`, or `/users/get-all` without a valid token.
+- **Impact:** Any client can directly call `/chat/insert`, `/chat/get-all`, or `/users/get-all` without a valid token.
 - **Risk Level:** **Critical**
 
 ### 1.2 JWT Expiration & Secret Key
@@ -18,7 +18,6 @@
 
 ### 2.1 Insecure Direct Object References (IDOR) & User Spoofing
 - **Message Insertion:** In `POST /chat/insert` ([server/routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js#L44-L50)), `user_id` and `username` are taken directly from the unverified request body rather than from a validated session. Any user can impersonate another user ID or name.
-- **Message Deletion:** In `DELETE /chat/delete` ([server/routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js#L154-L167)), `user_id` is passed in the request body. A malicious user can send any `user_id` matching the author of a message to delete another person's message.
 - **Unrestricted Room History Access:** `GET /chat/get-all?room_id=<id>` returns all messages for any room ID without verifying if the requesting user belongs to the room.
 - **Risk Level:** **Critical**
 
@@ -75,7 +74,7 @@
 ## 7. Recommended Security Remediations
 
 1. **Implement JWT Auth Middleware:** Create an Express middleware that validates `req.headers.authorization`, verifies the signature using `process.env.JWT_SECRET_KEY`, and attaches `req.user = decodedToken`.
-2. **Derive Identity Server-Side:** In `/chat/insert` and `/chat/delete`, extract `user_id` strictly from `req.user.userId` instead of `req.body.user_id`.
+2. **Derive Identity Server-Side:** In `/chat/insert`, extract `user_id` strictly from `req.user.userId` instead of `req.body.user_id`.
 3. **Remove `cat .env` from CI/CD:** Delete the debugging lines echoing credentials into workflow run logs.
 4. **Use Docker Internal Networks:** Stop exposing database ports (`27017`) to `0.0.0.0`; connect services via Docker bridge networks.
 5. **Secure Database Credentials:** Set strong authentication for MongoDB in production.

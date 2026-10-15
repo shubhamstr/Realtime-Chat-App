@@ -46,7 +46,6 @@ graph TD
     ChatContainer --> MessageList["MessageList & Message Components"]
     ChatContainer --> MessageInput["MessageInput (Typing, Send, Attach)"]
     ChatScreen --> NotificationModal["Notification Settings Modal"]
-    ChatScreen --> ContextMenu["Context Menu (Delete Message)"]
 ```
 
 ---
@@ -66,7 +65,7 @@ graph TD
 Socket.IO handlers are attached in [server/server.js](file:///w:/shubham/personal/Realtime-Chat-App/server/server.js#L57-L107):
 - Rooms are formed using Socket.IO `socket.join(roomName)`.
 - Client attaches room metadata on `socket.data.roomName`.
-- The Express app stores the Socket.IO instance via `app.set("io", io)`, enabling REST route controllers to broadcast real-time events to connected sockets in a room (e.g. `POST /chat/insert` and `DELETE /chat/delete`).
+- The Express app stores the Socket.IO instance via `app.set("io", io)`, enabling REST route controllers to broadcast real-time events to connected sockets in a room (e.g. `POST /chat/insert`).
 
 ---
 
@@ -83,7 +82,6 @@ Methods exposed by the database module:
 - `updateUser(id, fields)`
 - `createMessage(payload)`
 - `getMessagesByRoomId(roomId)`
-- `deleteMessage({ id, user_id, room_id })`
 
 ---
 
@@ -113,28 +111,6 @@ sequenceDiagram
     Socket-->>Peer: Event: 'room-message'
     REST-->>UI: Response: { err: false, data: persistedRecord }
     UI->>UI: Replace optimistic message with persisted message ID
-```
-
-### 5.2 Deleting a Message
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as User Browser
-    participant UI as ChatScreen.js
-    participant REST as Express DELETE /chat/delete
-    participant DB as MongoDB (Mongoose)
-    participant Socket as Socket.IO Server
-    actor Peer as Peer Browsers in Room
-
-    User->>UI: Right-clicks outgoing message -> selects Delete
-    UI->>REST: DELETE /chat/delete { id, user_id, room_id }
-    REST->>DB: deleteMessage({ id, user_id, room_id })
-    DB-->>REST: Deleted count ({ deletedCount: 1 })
-    REST->>Socket: io.to(room_id).emit('message-deleted', { messageId, roomName, user_id })
-    Socket-->>Peer: Event: 'message-deleted'
-    Peer->>Peer: Removes message from local chatList state
-    REST-->>UI: Response: { err: false, msg: 'Message deleted successfully' }
-    UI->>UI: Removes message from local chatList state
 ```
 
 ---

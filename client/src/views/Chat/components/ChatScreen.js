@@ -12,20 +12,15 @@ import {
   ConversationHeader
 } from '@chatscope/chat-ui-kit-react';
 import { makeStyles } from '@material-ui/styles';
-import Menu from '@material-ui/core/Menu';
-import MenuItem from '@material-ui/core/MenuItem';
-import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import {
   sendMessageAPI,
   getAllChatAPI,
-  deleteChatAPI,
-  deleteRoomAPI,
   updateChatNotificationSettingsAPI
 } from '../../../api/chat';
 import { logOut } from '../../../store/authSlice';
-import { touchChat, deleteSavedChat } from '../../../utils/chatStorage';
+import { touchChat } from '../../../utils/chatStorage';
 
 const API_URL = process.env.REACT_APP_API_URL;
 const CLIENT_URL = process.env.REACT_APP_CLIENT_URL;
@@ -88,52 +83,7 @@ const useStyles = makeStyles(() => ({
     flexShrink: 0
   },
   messageShell: {
-    position: 'relative',
-    '&:hover $messageActions': {
-      opacity: 1,
-      pointerEvents: 'auto'
-    }
-  },
-  messageActions: {
-    position: 'absolute',
-    top: 6,
-    right: 52,
-    opacity: 0,
-    pointerEvents: 'none',
-    transition: 'opacity 0.15s ease',
-    zIndex: 2
-  },
-  deleteButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    border: '1px solid rgba(148, 163, 184, 0.22)',
-    background: 'rgba(255, 255, 255, 0.96)',
-    color: '#64748b',
-    cursor: 'pointer',
-    display: 'grid',
-    placeItems: 'center',
-    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.08)',
-    transition: 'color 0.15s ease, background 0.15s ease, border-color 0.15s ease',
-    '&:hover': {
-      color: '#dc2626',
-      background: '#fef2f2',
-      borderColor: 'rgba(239, 68, 68, 0.35)'
-    },
-    '&:focus': {
-      outline: 'none',
-      boxShadow: '0 0 0 2px rgba(239, 68, 68, 0.25)'
-    }
-  },
-  contextMenuItem: {
-    fontSize: 14,
-    gap: 10,
-    color: '#dc2626'
-  },
-  contextMenuIcon: {
-    fontSize: 18,
-    marginRight: 10,
-    color: '#dc2626'
+    position: 'relative'
   },
   headerActions: {
     display: 'flex',
@@ -156,24 +106,6 @@ const useStyles = makeStyles(() => ({
     '&:hover': {
       background: '#f8fafc',
       borderColor: '#94a3b8'
-    }
-  },
-  deleteChatButton: {
-    border: '1px solid rgba(239, 68, 68, 0.3)',
-    background: '#fff',
-    color: '#dc2626',
-    borderRadius: 12,
-    padding: '7px 12px',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 500,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    transition: 'all 0.15s ease',
-    '&:hover': {
-      background: '#fef2f2',
-      borderColor: '#ef4444'
     }
   },
   unreadBadge: {
@@ -305,7 +237,6 @@ const ChatScreen = () => {
   const [emailAlertEnabled, setEmailAlertEnabled] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
-  const [messageMenu, setMessageMenu] = useState(null);
 
   // In-app notifications & online status
   const [unreadCount, setUnreadCount] = useState(0);
@@ -508,84 +439,7 @@ const ChatScreen = () => {
     reader.readAsDataURL(file);
   };
 
-  const closeMessageMenu = () => setMessageMenu(null);
 
-  const handleMessageContextMenu = (event, chat) => {
-    event.preventDefault();
-    setMessageMenu({
-      mouseX: event.clientX - 2,
-      mouseY: event.clientY - 4,
-      chat
-    });
-  };
-
-  const handleDeleteMessage = chat => {
-    const messageId = chat._id || chat.id;
-
-    if (!messageId) {
-      alert('This message cannot be deleted.');
-      return;
-    }
-
-    if (String(messageId).startsWith('tmp-')) {
-      setChatList(current => current.filter(item => (item._id || item.id) !== messageId));
-      return;
-    }
-
-    if (!window.confirm('Delete this message?')) {
-      return;
-    }
-
-    deleteChatAPI({
-      id: messageId,
-      user_id: userDetails.id || userDetails._id,
-      room_id: url
-    }).then(res => {
-      if (res.err) {
-        alert(res.msg);
-        return;
-      }
-
-      setChatList(current =>
-        current.filter(item => {
-          const itemId = item._id || item.id;
-          return String(itemId) !== String(messageId);
-        })
-      );
-    });
-  };
-
-  const handleDeleteFromMenu = () => {
-    if (messageMenu?.chat) {
-      handleDeleteMessage(messageMenu.chat);
-    }
-    closeMessageMenu();
-  };
-
-  // Delete entire chat room messages and storage
-  const handleDeleteChatRoom = () => {
-    if (
-      !window.confirm(
-        'Are you sure you want to delete this chat? All messages in this room will be deleted.'
-      )
-    ) {
-      return;
-    }
-
-    deleteRoomAPI({ room_id: url })
-      .then(res => {
-        if (res.err) {
-          alert(res.msg);
-          return;
-        }
-        setChatList([]);
-        deleteSavedChat(url);
-        alert('Chat deleted successfully');
-      })
-      .catch(err => {
-        alert(err?.message || 'Failed to delete chat');
-      });
-  };
 
   const handleLogOut = () => {
     localStorage.removeItem('chatToken');
@@ -681,28 +535,6 @@ const ChatScreen = () => {
       });
     };
 
-    const handleDeletedMessage = data => {
-      if (!url || data?.roomName !== url) {
-        return;
-      }
-
-      const deletedId = data?.messageId;
-      if (!deletedId) {
-        return;
-      }
-
-      setChatList(current =>
-        current.filter(chat => String(chat._id || chat.id) !== String(deletedId))
-      );
-    };
-
-    const handleRoomCleared = data => {
-      if (!url || data?.roomName !== url) {
-        return;
-      }
-      setChatList([]);
-    };
-
     const handleRoomUsers = data => {
       if (data?.roomName === url && Array.isArray(data.users)) {
         setOnlineUsers(data.users);
@@ -732,8 +564,6 @@ const ChatScreen = () => {
     };
 
     socket.on('room-message', handleIncomingMessage);
-    socket.on('message-deleted', handleDeletedMessage);
-    socket.on('room-cleared', handleRoomCleared);
     socket.on('room-users', handleRoomUsers);
     socket.on('connect', handleConnect);
     socket.on('connect_error', err => {
@@ -746,8 +576,6 @@ const ChatScreen = () => {
 
     return () => {
       socket.off('room-message', handleIncomingMessage);
-      socket.off('message-deleted', handleDeletedMessage);
-      socket.off('room-cleared', handleRoomCleared);
       socket.off('room-users', handleRoomUsers);
       socket.off('connect', handleConnect);
       socket.off('connect_error');
@@ -830,15 +658,6 @@ const ChatScreen = () => {
                   >
                     Email Alerts
                   </button>
-                  <button
-                    className={classes.deleteChatButton}
-                    onClick={handleDeleteChatRoom}
-                    title="Delete entire chat history"
-                    type="button"
-                  >
-                    <DeleteOutlineIcon style={{ fontSize: 16 }} />
-                    Delete Chat
-                  </button>
                   <SendButton
                     border
                     onClick={() => {
@@ -871,25 +690,7 @@ const ChatScreen = () => {
                     <div
                       className={classes.messageShell}
                       key={`${chat.id || index}-${chat.created_on || 'msg'}`}
-                      onContextMenu={
-                        dir === 'outgoing'
-                          ? event => handleMessageContextMenu(event, chat)
-                          : undefined
-                      }
                     >
-                      {dir === 'outgoing' ? (
-                        <div className={classes.messageActions}>
-                          <button
-                            aria-label="Delete message"
-                            className={classes.deleteButton}
-                            onClick={() => handleDeleteMessage(chat)}
-                            title="Delete message"
-                            type="button"
-                          >
-                            <DeleteOutlineIcon style={{ fontSize: 16 }} />
-                          </button>
-                        </div>
-                      ) : null}
                       <Message
                         model={{
                           message: chat.message,
@@ -953,24 +754,6 @@ const ChatScreen = () => {
           </ChatContainer>
         )}
       </MainContainer>
-      <Menu
-        anchorPosition={
-          messageMenu !== null
-            ? { top: messageMenu.mouseY, left: messageMenu.mouseX }
-            : undefined
-        }
-        anchorReference="anchorPosition"
-        onClose={closeMessageMenu}
-        open={messageMenu !== null}
-      >
-        <MenuItem
-          className={classes.contextMenuItem}
-          onClick={handleDeleteFromMenu}
-        >
-          <DeleteOutlineIcon className={classes.contextMenuIcon} />
-          Delete
-        </MenuItem>
-      </Menu>
 
       {showNotificationModal ? (
         <div

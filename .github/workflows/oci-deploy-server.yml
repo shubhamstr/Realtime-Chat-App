@@ -1,10 +1,11 @@
 name: Build and Deploy Server to Oracle Cloud
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'server/**'
+  # Manual deployment only - push automation commented for now
+  # push:
+  #   branches: [ "main" ]
+  #   paths:
+  #     - 'server/**'
   workflow_dispatch:
 
 env:

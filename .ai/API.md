@@ -115,48 +115,6 @@ Fetches all persistent chat messages for a specific room.
   }
   ```
 
-#### `DELETE /chat/delete`
-Deletes a message from the database and broadcasts deletion event to room members.
-
-- **Authentication:** Unauthenticated.
-- **Request Body:**
-  ```json
-  {
-    "id": "41",
-    "user_id": "58",
-    "room_id": "yzqfLr-G8KSZnjRp9siHCn3asWXtgqexrKmdXABdp6Q"
-  }
-  ```
-- **Success Response (HTTP 200):**
-  ```json
-  {
-    "err": false,
-    "msg": "Message deleted successfully",
-    "data": { "affectedRows": 1 }
-  }
-  ```
-- **Real-time Side Effect:** Emits `message-deleted` to Socket.IO room `room_id`.
-
-#### `DELETE /chat/delete-room`
-Deletes all persistent messages for a specific room and broadcasts the `room-cleared` event to connected room members.
-
-- **Authentication:** Unauthenticated.
-- **Request Body or Query:**
-  ```json
-  {
-    "room_id": "yzqfLr-G8KSZnjRp9siHCn3asWXtgqexrKmdXABdp6Q"
-  }
-  ```
-- **Success Response (HTTP 200):**
-  ```json
-  {
-    "err": false,
-    "msg": "Chat room deleted successfully",
-    "data": { "deletedCount": 14 }
-  }
-  ```
-- **Real-time Side Effect:** Emits `room-cleared` with `{ roomName: room_id }` to Socket.IO room `room_id`.
-
 #### `POST /chat/update-notification-email`
 Updates notification settings and email address for a user.
 
@@ -239,8 +197,6 @@ Socket handlers are implemented in [server/server.js](file:///w:/shubham/persona
 | `room-users` | Server (presence tracker) | `{ roomName: string, users: Array, count: number }` | Real-time presence payload containing active users in the room. |
 | `connected` | Server (`connected` handler) | `username: string` | Broadcasts user connection. |
 | `room-message` | REST controller `POST /chat/insert` | `{ roomName, username, message, attachment, messageId }` | Live message delivered to all connected room members. |
-| `message-deleted` | REST controller `DELETE /chat/delete` | `{ messageId, roomName, user_id }` | Signals client to remove deleted message from local state. |
-| `room-cleared` | REST controller `DELETE /chat/delete-room` | `{ roomName }` | Signals client to wipe message list for the cleared room. |
 | `typing` | Server (`typing` handler) | `{ roomName, username }` | Triggers "User is typing..." UI state. |
 | `stopTyping` | Server (`stopTyping` handler) | `{ roomName, username }` | Clears typing indicator UI state. |
 

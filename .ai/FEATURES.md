@@ -10,7 +10,7 @@
 | **Real-time Room Chat** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [server.js](file:///w:/shubham/personal/Realtime-Chat-App/server/server.js), [routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js) | `createMessage` |
 | **Message History Retrieval** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js) | `getMessagesByRoomId` |
 | **Image Attachments (Base64)** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js) | `createMessage` (`attachment`) |
-| **Message & Room Deletion** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js) | `deleteMessage`, `deleteMessagesByRoomId` |
+| **Message & Room Deletion** | Removed | None | None | None |
 | **Typing Indicators** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [server.js](file:///w:/shubham/personal/Realtime-Chat-App/server/server.js) | None (In-memory socket broadcast) |
 | **Real-time Online Presence Tracking** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | [server.js](file:///w:/shubham/personal/Realtime-Chat-App/server/server.js) | None (In-memory socket tracking) |
 | **In-App Notification Counts** | Active | [ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js) | None (Tab title & header badge) | None |
@@ -60,11 +60,8 @@
 
 ---
 
-### 2.4 Feature: Message Deletion & Sync
-- **Description:** Users can right-click their own outgoing messages to trigger a context menu with a "Delete" action.
-- **Client Implementation:** [client/src/views/Chat/components/ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js#L516-L566).
-- **Server Implementation:** [server/routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js#L154-L208).
-- **Realtime Sync:** Server emits `message-deleted` with `{ messageId, roomName, user_id }`, which all clients in the room handle by filtering out the item from local `chatList` state.
+### 2.4 Feature: Message Deletion & Sync (Removed)
+- **Status:** Removed completely from client and backend to prevent message tampering and retain permanent room history.
 
 ---
 
@@ -102,9 +99,5 @@
 
 ---
 
-### 2.9 Feature: Message & Room Deletion
-- **Description:** 
-  1. **Message Deletion:** Outgoing messages have a visible delete button on hover and right-click context menu, calling `DELETE /chat/delete` and broadcasting `message-deleted`.
-  2. **Room Deletion:** Header includes a "Delete Chat" button with confirmation that calls `DELETE /chat/delete-room` to wipe room messages from MongoDB, broadcast `room-cleared` to all connected users, and remove the room from local storage.
-- **Client Implementation:** [client/src/views/Chat/components/ChatScreen.js](file:///w:/shubham/personal/Realtime-Chat-App/client/src/views/Chat/components/ChatScreen.js).
-- **Server Implementation:** [server/routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js).
+### 2.9 Feature: Message & Room Deletion (Removed)
+- **Status:** Removed completely from client and backend. Chat history is preserved and deletion endpoints are eliminated.
