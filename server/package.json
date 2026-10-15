@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db": "docker compose -f docker-compose.yml up mongo -d"
+    "db": "docker compose -f docker-compose.yml up mongo -d",
+    "server": "docker compose -f docker-compose.yml up server -d"
   },
   "author": "",
   "license": "ISC",
