@@ -137,6 +137,26 @@ Deletes a message from the database and broadcasts deletion event to room member
   ```
 - **Real-time Side Effect:** Emits `message-deleted` to Socket.IO room `room_id`.
 
+#### `DELETE /chat/delete-room`
+Deletes all persistent messages for a specific room and broadcasts the `room-cleared` event to connected room members.
+
+- **Authentication:** Unauthenticated.
+- **Request Body or Query:**
+  ```json
+  {
+    "room_id": "yzqfLr-G8KSZnjRp9siHCn3asWXtgqexrKmdXABdp6Q"
+  }
+  ```
+- **Success Response (HTTP 200):**
+  ```json
+  {
+    "err": false,
+    "msg": "Chat room deleted successfully",
+    "data": { "deletedCount": 14 }
+  }
+  ```
+- **Real-time Side Effect:** Emits `room-cleared` with `{ roomName: room_id }` to Socket.IO room `room_id`.
+
 #### `POST /chat/update-notification-email`
 Updates notification settings and email address for a user.
 
@@ -202,20 +222,25 @@ Socket handlers are implemented in [server/server.js](file:///w:/shubham/persona
 
 | Event Name | Payload | Handler Action |
 | :--- | :--- | :--- |
-| `joinRoom` | `{ roomName: string, username: string }` | Executes `socket.join(roomName)`, saves `socket.data.roomName`, emits `roomJoined` to other sockets. |
+| `joinRoom` | `{ roomName: string, username: string, userId?: string }` | Executes `socket.join(roomName)`, tracks socket in `roomUsers`, emits `roomJoined` and updated `room-users` presence to the room. |
+| `leaveRoom` | `roomName: string` | Removes socket from `roomUsers`, calls `socket.leave(roomName)`, and broadcasts updated `room-users`. |
+| `getRoomUsers` | `roomName: string` | Broadcasts current active user presence list for `roomName`. |
 | `connected` | `username: string` | Broadcasts `connected` with the username to all clients. |
 | `message` | `{ username: string, message: string }` | Broadcasts `room-message` to the socket's joined room or across all clients if unassigned. |
 | `typing` | `{ roomName: string, username: string }` | Emits `typing` event to all other clients in `roomName`. |
 | `stopTyping` | `{ roomName: string, username: string }` | Emits `stopTyping` event to all other clients in `roomName`. |
+| `disconnect` | None | Automatically purges socket from active room user map and broadcasts updated `room-users`. |
 
 ### 3.2 Server-to-Client Events
 
 | Event Name | Source | Payload | Description |
 | :--- | :--- | :--- | :--- |
 | `roomJoined` | Server (`joinRoom` handler) | `username: string` | Notifies room members that a new user entered. |
+| `room-users` | Server (presence tracker) | `{ roomName: string, users: Array, count: number }` | Real-time presence payload containing active users in the room. |
 | `connected` | Server (`connected` handler) | `username: string` | Broadcasts user connection. |
 | `room-message` | REST controller `POST /chat/insert` | `{ roomName, username, message, attachment, messageId }` | Live message delivered to all connected room members. |
 | `message-deleted` | REST controller `DELETE /chat/delete` | `{ messageId, roomName, user_id }` | Signals client to remove deleted message from local state. |
+| `room-cleared` | REST controller `DELETE /chat/delete-room` | `{ roomName }` | Signals client to wipe message list for the cleared room. |
 | `typing` | Server (`typing` handler) | `{ roomName, username }` | Triggers "User is typing..." UI state. |
 | `stopTyping` | Server (`stopTyping` handler) | `{ roomName, username }` | Clears typing indicator UI state. |
 

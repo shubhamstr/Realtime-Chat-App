@@ -43,7 +43,7 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 )
 ```
-- **Indexes:** Automatic `_id` index; explicit index on `room_id`.
+- **Indexes:** Automatic `_id` index; explicit index on `room_id`; TTL index on `createdAt` expiring after 30 days (`expireAfterSeconds: 2592000`).
 
 ---
 
@@ -62,6 +62,7 @@ The database layer provides standardized asynchronous methods:
 | `createMessage` | `Message.create(payload)` | Created Message document |
 | `getMessagesByRoomId`| `Message.find({ room_id: roomId }).lean()` | Array of Message documents |
 | `deleteMessage` | `Message.deleteOne(filter)` | Object with `{ deletedCount }` (or `{ deletedCount: 0, invalidId: true }` if ObjectId is invalid) |
+| `deleteMessagesByRoomId` | `Message.deleteMany({ room_id: roomId })` | Object with `{ deletedCount }` |
 | `updateMessage` | `Message.updateOne({ _id: id }, { $set: fields })` | Mongoose update result |
 
 ---

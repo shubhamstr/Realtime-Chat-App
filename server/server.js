@@ -53,17 +53,57 @@ app.use("/auth", auth)
 app.use("/chat", chat)
 app.set("io", io)
 
-// socket io
+// socket io presence tracking
+const roomUsers = new Map()
+
+const broadcastRoomUsers = (roomName) => {
+  if (!roomName) return
+  const usersMap = roomUsers.get(roomName)
+  const usersList = usersMap ? Array.from(usersMap.values()) : []
+  io.to(roomName).emit("room-users", {
+    roomName,
+    users: usersList,
+    count: usersList.length,
+  })
+}
+
 io.on("connection", (socket) => {
-  console.log("connected..")
+  console.log("connected..", socket.id)
 
   socket.on("joinRoom", (obj) => {
-    console.log(obj)
-    console.log(socket.rooms) // Set { <socket.id> }
-    socket.join(obj.roomName)
-    socket.data.roomName = obj.roomName
-    console.log(socket.rooms) // Set { <socket.id>, "room1" }
-    socket.broadcast.emit("roomJoined", obj.username)
+    if (!obj || !obj.roomName) return
+    const roomName = obj.roomName
+    const username = obj.username || "Guest"
+    const userId = obj.userId || ""
+
+    socket.join(roomName)
+    socket.data.roomName = roomName
+    socket.data.username = username
+    socket.data.userId = userId
+
+    if (!roomUsers.has(roomName)) {
+      roomUsers.set(roomName, new Map())
+    }
+    roomUsers.get(roomName).set(socket.id, { username, userId, socketId: socket.id })
+
+    socket.broadcast.emit("roomJoined", username)
+    broadcastRoomUsers(roomName)
+  })
+
+  socket.on("getRoomUsers", (roomName) => {
+    broadcastRoomUsers(roomName || socket.data.roomName)
+  })
+
+  socket.on("leaveRoom", (roomName) => {
+    const targetRoom = roomName || socket.data.roomName
+    if (targetRoom && roomUsers.has(targetRoom)) {
+      roomUsers.get(targetRoom).delete(socket.id)
+      if (roomUsers.get(targetRoom).size === 0) {
+        roomUsers.delete(targetRoom)
+      }
+      socket.leave(targetRoom)
+      broadcastRoomUsers(targetRoom)
+    }
   })
 
   socket.on("connected", (username) => {
@@ -103,6 +143,18 @@ io.on("connection", (socket) => {
     }
 
     socket.to(socket.data.roomName).emit("stopTyping", data)
+  })
+
+  socket.on("disconnect", () => {
+    const roomName = socket.data.roomName
+    if (roomName && roomUsers.has(roomName)) {
+      const roomMap = roomUsers.get(roomName)
+      roomMap.delete(socket.id)
+      if (roomMap.size === 0) {
+        roomUsers.delete(roomName)
+      }
+      broadcastRoomUsers(roomName)
+    }
   })
 })
 

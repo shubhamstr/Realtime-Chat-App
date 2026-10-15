@@ -24,6 +24,12 @@ export function deleteChatAPI(payload) {
   });
 }
 
+export function deleteRoomAPI(payload) {
+  return axiosClient.delete('/chat/delete-room', { data: payload }).then(resp => {
+    return resp.data;
+  });
+}
+
 export function updateChatNotificationSettingsAPI(payload) {
   return axiosClient.post('/chat/update-notification-email', payload).then(resp => {
     return resp.data;

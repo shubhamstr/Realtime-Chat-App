@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import '@chatscope/chat-ui-kit-styles/dist/default/styles.min.css';
 import {
   Avatar,
@@ -14,16 +14,18 @@ import {
 import { makeStyles } from '@material-ui/styles';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
-// import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
+import DeleteOutlineIcon from '@material-ui/icons/DeleteOutline';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import {
   sendMessageAPI,
   getAllChatAPI,
   deleteChatAPI,
+  deleteRoomAPI,
   updateChatNotificationSettingsAPI
 } from '../../../api/chat';
 import { logOut } from '../../../store/authSlice';
+import { touchChat, deleteSavedChat } from '../../../utils/chatStorage';
 
 const API_URL = process.env.REACT_APP_API_URL;
 const CLIENT_URL = process.env.REACT_APP_CLIENT_URL;
@@ -31,19 +33,19 @@ const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 const DEFAULT_USER_AVATAR = '/images/avatars/user.svg';
 const INCOMING_USER_AVATAR = '/images/avatars/user-incoming.svg';
 const OUTGOING_USER_AVATAR = '/images/avatars/user-outgoing.svg';
+const APP_TITLE = 'Realtime Chat App';
 
 const useStyles = makeStyles(() => ({
   shell: {
     position: 'relative',
-    // height: 'calc(100vh - 64px)',
-    // overflow: 'hidden',
     height: 'calc(100vh - 125px)',
     minHeight: 640,
     borderRadius: 24,
     boxShadow: '0 24px 80px rgba(15, 23, 42, 0.12)',
     border: '1px solid rgba(148, 163, 184, 0.18)',
     background: 'rgba(255, 255, 255, 0.72)',
-    backdropFilter: 'blur(18px)'
+    backdropFilter: 'blur(18px)',
+    overflow: 'hidden'
   },
   container: {
     height: '100%'
@@ -66,19 +68,6 @@ const useStyles = makeStyles(() => ({
   },
   fileInput: {
     display: 'none'
-  },
-  attachButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    border: '1px solid rgba(148, 163, 184, 0.28)',
-    background: '#fff',
-    cursor: 'pointer',
-    display: 'grid',
-    placeItems: 'center',
-    color: '#0f172a',
-    fontSize: 18,
-    flexShrink: 0
   },
   preview: {
     display: 'flex',
@@ -115,8 +104,8 @@ const useStyles = makeStyles(() => ({
     zIndex: 2
   },
   deleteButton: {
-    width: 30,
-    height: 30,
+    width: 28,
+    height: 28,
     borderRadius: 8,
     border: '1px solid rgba(148, 163, 184, 0.22)',
     background: 'rgba(255, 255, 255, 0.96)',
@@ -146,14 +135,84 @@ const useStyles = makeStyles(() => ({
     marginRight: 10,
     color: '#dc2626'
   },
-  settingsButton: {
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8
+  },
+  actionButton: {
     border: '1px solid rgba(148, 163, 184, 0.28)',
     background: '#fff',
     color: '#0f172a',
     borderRadius: 12,
-    padding: '8px 12px',
+    padding: '7px 12px',
     cursor: 'pointer',
-    fontSize: 13
+    fontSize: 13,
+    fontWeight: 500,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    transition: 'all 0.15s ease',
+    '&:hover': {
+      background: '#f8fafc',
+      borderColor: '#94a3b8'
+    }
+  },
+  deleteChatButton: {
+    border: '1px solid rgba(239, 68, 68, 0.3)',
+    background: '#fff',
+    color: '#dc2626',
+    borderRadius: 12,
+    padding: '7px 12px',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 500,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    transition: 'all 0.15s ease',
+    '&:hover': {
+      background: '#fef2f2',
+      borderColor: '#ef4444'
+    }
+  },
+  unreadBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#ef4444',
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: 700,
+    borderRadius: 9999,
+    padding: '2px 8px',
+    marginLeft: 8,
+    animation: '$pulse 2s infinite'
+  },
+  '@keyframes pulse': {
+    '0%': { transform: 'scale(1)' },
+    '50%': { transform: 'scale(1.05)' },
+    '100%': { transform: 'scale(1)' }
+  },
+  onlineIndicator: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: 12,
+    fontWeight: 600
+  },
+  onlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    background: '#10b981',
+    boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.2)'
+  },
+  offlineDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    background: '#94a3b8'
   },
   modalBackdrop: {
     position: 'fixed',
@@ -234,6 +293,8 @@ const ChatScreen = () => {
   const auth = useSelector(state => state.auth);
   const dispatch = useDispatch();
   const classes = useStyles();
+  const { userDetails } = auth;
+
   const [message, setMessage] = useState('');
   const [chatList, setChatList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -242,14 +303,14 @@ const ChatScreen = () => {
   const [attachmentName, setAttachmentName] = useState('');
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [emailAlertEnabled, setEmailAlertEnabled] = useState(false);
-  const [browserAlertEnabled, setBrowserAlertEnabled] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [messageMenu, setMessageMenu] = useState(null);
-  const [browserPermissionState, setBrowserPermissionState] = useState(
-    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
-  );
-  const { userDetails } = auth;
+
+  // In-app notifications & online status
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+
   const socketRef = useRef(null);
   if (!socketRef.current) {
     socketRef.current = io(API_URL, {
@@ -262,103 +323,42 @@ const ChatScreen = () => {
   const socket = socketRef.current;
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
-  const browserAlertEnabledRef = useRef(false);
-  const browserPermissionRef = useRef(
-    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
-  );
-  const avatar = userDetails.image
-    ? userDetails.image
-    : DEFAULT_USER_AVATAR;
 
-  const syncBrowserPermission = () => {
-    if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
-      setBrowserPermissionState('unsupported');
-      browserPermissionRef.current = 'unsupported';
-      setBrowserAlertEnabled(false);
-      browserAlertEnabledRef.current = false;
-      return 'unsupported';
+  const avatar = userDetails.image ? userDetails.image : DEFAULT_USER_AVATAR;
+
+  // Touch current chat in localStorage
+  useEffect(() => {
+    if (url) {
+      touchChat(url);
     }
+  }, [url, chatList.length]);
 
-    const permission = window.Notification.permission;
-    setBrowserPermissionState(permission);
-    browserPermissionRef.current = permission;
-    if (permission !== 'granted') {
-      setBrowserAlertEnabled(false);
-      browserAlertEnabledRef.current = false;
-    }
-    return permission;
-  };
-
-  const requestBrowserAlerts = async () => {
-    if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
-      alert('This browser does not support notifications.');
-      return false;
-    }
-
-    if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      alert('Browser notifications require HTTPS or localhost.');
-      return false;
-    }
-
-    const permission = await window.Notification.requestPermission();
-    setBrowserPermissionState(permission);
-    browserPermissionRef.current = permission;
-    if (permission !== 'granted') {
-      setBrowserAlertEnabled(false);
-      browserAlertEnabledRef.current = false;
-      alert('Browser notifications were not allowed.');
-      return false;
-    }
-
-    setBrowserAlertEnabled(true);
-    browserAlertEnabledRef.current = true;
-    return true;
-  };
-
-  const showBrowserNotification = data => {
-    if (!browserAlertEnabledRef.current) {
-      return;
-    }
-
-    if (typeof window === 'undefined' || typeof window.Notification === 'undefined') {
-      return;
-    }
-
-    if (browserPermissionRef.current !== 'granted') {
-      return;
-    }
-
-    if (data?.username === userDetails.username) {
-      return;
-    }
-
-    const title = `New message in room ${url}`;
-    const body = data?.message
-      ? `${data.username || 'Someone'}: ${data.message}`
-      : `${data.username || 'Someone'} sent a new message`;
-
-    try {
-      const notification = new window.Notification(title, {
-        body,
-        icon: userDetails.image || DEFAULT_USER_AVATAR,
-      });
-
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-    } catch (err) {
-      console.log('Browser notification failed:', err);
-      alert(body);
-    }
-  };
+  // Document focus & In-App Notification count handling
+  const resetNotifications = useCallback(() => {
+    setUnreadCount(0);
+    document.title = APP_TITLE;
+  }, []);
 
   useEffect(() => {
-    const enabled = Boolean(userDetails.push_notification_flag);
-    setBrowserAlertEnabled(enabled);
-    browserAlertEnabledRef.current = enabled;
-    syncBrowserPermission();
-  }, [userDetails.push_notification_flag]);
+    const handleFocus = () => {
+      resetNotifications();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        resetNotifications();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.title = APP_TITLE;
+    };
+  }, [resetNotifications]);
 
   const handleMsg = value => {
     setMessage(value);
@@ -419,13 +419,16 @@ const ChatScreen = () => {
       emailAlertTo: notificationEmail,
       enableEmailAlert: emailAlertEnabled ? 1 : 0
     });
+
     socket.emit('stopTyping', {
       roomName: url,
       username: userDetails.username || 'Someone'
     });
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
+
     resp.then(res => {
       if (res.err) {
         setChatList(current => current.filter(chat => chat.id !== optimisticMessage.id));
@@ -458,23 +461,17 @@ const ChatScreen = () => {
 
   const saveNotificationSettings = () => {
     setSettingsSaving(true);
-    const permissionPromise = browserAlertEnabled ? requestBrowserAlerts() : Promise.resolve(true);
-
-    permissionPromise
-      .then(canEnableBrowserAlerts => updateChatNotificationSettingsAPI({
-        id: userDetails.id || userDetails._id,
-        email: notificationEmail,
-        email_notification_flag: emailAlertEnabled ? 1 : 0,
-        push_notification_flag: canEnableBrowserAlerts && browserAlertEnabled ? 1 : 0
-      }))
+    updateChatNotificationSettingsAPI({
+      id: userDetails.id || userDetails._id,
+      email: notificationEmail,
+      email_notification_flag: emailAlertEnabled ? 1 : 0
+    })
       .then(res => {
         setSettingsSaving(false);
         if (res.err) {
           alert(res.msg);
           return;
         }
-
-        syncBrowserPermission();
         setShowNotificationModal(false);
         alert('Notification settings saved');
       })
@@ -565,6 +562,31 @@ const ChatScreen = () => {
     closeMessageMenu();
   };
 
+  // Delete entire chat room messages and storage
+  const handleDeleteChatRoom = () => {
+    if (
+      !window.confirm(
+        'Are you sure you want to delete this chat? All messages in this room will be deleted.'
+      )
+    ) {
+      return;
+    }
+
+    deleteRoomAPI({ room_id: url })
+      .then(res => {
+        if (res.err) {
+          alert(res.msg);
+          return;
+        }
+        setChatList([]);
+        deleteSavedChat(url);
+        alert('Chat deleted successfully');
+      })
+      .catch(err => {
+        alert(err?.message || 'Failed to delete chat');
+      });
+  };
+
   const handleLogOut = () => {
     localStorage.removeItem('chatToken');
     dispatch(logOut());
@@ -575,15 +597,17 @@ const ChatScreen = () => {
     const resp = getAllChatAPI({
       room_id: url
     });
-    resp.then(res => {
-      if (res.err) {
-        alert(res.msg);
-      } else {
-        setChatList(res.data);
-      }
-    }).finally(() => {
-      setLoading(false);
-    });
+    resp
+      .then(res => {
+        if (res.err) {
+          alert(res.msg);
+        } else {
+          setChatList(res.data);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -596,22 +620,34 @@ const ChatScreen = () => {
         return;
       }
 
-      showBrowserNotification(data);
+      // Update in-app notification count and tab title if document is hidden or inactive
+      if (document.hidden) {
+        setUnreadCount(prev => {
+          const next = prev + 1;
+          document.title = `(${next}) ${APP_TITLE}`;
+          return next;
+        });
+      }
 
       setChatList(current => {
-        const incomingId = data?.messageId || `${data?.roomName || url}-${data?.username || 'Someone'}-${data?.message || ''}`;
-        const alreadyExists = current.some(chat => chat.id === incomingId || chat.messageId === incomingId);
+        const incomingId =
+          data?.messageId ||
+          `${data?.roomName || url}-${data?.username || 'Someone'}-${data?.message || ''}`;
+        const alreadyExists = current.some(
+          chat => chat.id === incomingId || chat.messageId === incomingId
+        );
 
         if (alreadyExists) {
           return current;
         }
 
-        const tempIndex = current.findIndex(chat =>
-          String(chat.id || '').startsWith('tmp-') &&
-          chat.user_id === data?.user_id &&
-          chat.room_id === (data?.roomName || url) &&
-          chat.message === (data?.message || '') &&
-          chat.attachment === (data?.attachment || '')
+        const tempIndex = current.findIndex(
+          chat =>
+            String(chat.id || '').startsWith('tmp-') &&
+            chat.user_id === data?.user_id &&
+            chat.room_id === (data?.roomName || url) &&
+            chat.message === (data?.message || '') &&
+            chat.attachment === (data?.attachment || '')
         );
 
         if (tempIndex >= 0) {
@@ -660,11 +696,25 @@ const ChatScreen = () => {
       );
     };
 
+    const handleRoomCleared = data => {
+      if (!url || data?.roomName !== url) {
+        return;
+      }
+      setChatList([]);
+    };
+
+    const handleRoomUsers = data => {
+      if (data?.roomName === url && Array.isArray(data.users)) {
+        setOnlineUsers(data.users);
+      }
+    };
+
     const handleConnect = () => {
       if (url && userDetails.username) {
         socket.emit('joinRoom', {
           roomName: url,
-          username: userDetails.username
+          username: userDetails.username,
+          userId: userDetails.id || userDetails._id
         });
       }
     };
@@ -683,6 +733,8 @@ const ChatScreen = () => {
 
     socket.on('room-message', handleIncomingMessage);
     socket.on('message-deleted', handleDeletedMessage);
+    socket.on('room-cleared', handleRoomCleared);
+    socket.on('room-users', handleRoomUsers);
     socket.on('connect', handleConnect);
     socket.on('connect_error', err => {
       console.log('Socket connect error:', err?.message || err);
@@ -695,6 +747,8 @@ const ChatScreen = () => {
     return () => {
       socket.off('room-message', handleIncomingMessage);
       socket.off('message-deleted', handleDeletedMessage);
+      socket.off('room-cleared', handleRoomCleared);
+      socket.off('room-users', handleRoomUsers);
       socket.off('connect', handleConnect);
       socket.off('connect_error');
       socket.off('typing', handleTyping);
@@ -703,7 +757,7 @@ const ChatScreen = () => {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [socket, url, userDetails.username]);
+  }, [socket, url, userDetails.username, userDetails.id, userDetails._id]);
 
   useEffect(() => {
     return () => {
@@ -717,6 +771,13 @@ const ChatScreen = () => {
     }
   }, [url, userDetails.id, userDetails._id]);
 
+  // Determine online status
+  const otherUsersOnline = onlineUsers.filter(
+    u => u.username !== userDetails.username
+  );
+  const isOtherUserOnline = otherUsersOnline.length > 0;
+  const onlineCount = onlineUsers.length;
+
   return (
     <div className={classes.shell}>
       <MainContainer className={classes.container}>
@@ -727,56 +788,82 @@ const ChatScreen = () => {
               <Avatar
                 name={userDetails.username}
                 src={avatar}
+                status={isOtherUserOnline ? 'available' : 'dnd'}
               />
               <ConversationHeader.Content
                 info={
-                  typingUser
-                    ? `${typingUser} is typing...`
-                    : `${chatList.length} message${chatList.length === 1 ? '' : 's'} in this room`
+                  typingUser ? (
+                    `${typingUser} is typing...`
+                  ) : (
+                    <span className={classes.onlineIndicator}>
+                      <span
+                        className={
+                          isOtherUserOnline ? classes.onlineDot : classes.offlineDot
+                        }
+                      />
+                      {isOtherUserOnline
+                        ? `Online (${onlineCount} active)`
+                        : 'Offline (waiting for members)'}
+                      {' • '}
+                      {chatList.length} message{chatList.length === 1 ? '' : 's'}
+                      {unreadCount > 0 && (
+                        <span className={classes.unreadBadge}>
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </span>
+                  )
                 }
                 userName={`Room ID - (${url})`}
               />
               <ConversationHeader.Actions>
-                <button
-                  className={classes.settingsButton}
-                  onClick={() => {
-                    setNotificationEmail(userDetails.email || '');
-                    const emailEnabled = Boolean(userDetails.email_notification_flag);
-                    const browserEnabled = Boolean(userDetails.push_notification_flag);
-                    setEmailAlertEnabled(emailEnabled);
-                    setBrowserAlertEnabled(browserEnabled);
-                    browserAlertEnabledRef.current = browserEnabled;
-                    syncBrowserPermission();
-                    setShowNotificationModal(true);
-                  }}
-                  type="button"
-                  title="Notification settings"
-                >
-                  Notifications
-                </button>
-                <SendButton
-                  border
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${CLIENT_URL}/chat/${url}`);
-                    alert('Chat link copied to clipboard');
-                  }}
-                  style={{ padding: '0px 10px' }}
-                  title="Share Chat"
-                />
-                <ArrowButton
-                  border
-                  direction="right"
-                  onClick={handleLogOut}
-                  style={{ padding: '0px 10px' }}
-                  title="Log Out"
-                />
+                <div className={classes.headerActions}>
+                  <button
+                    className={classes.actionButton}
+                    onClick={() => {
+                      setNotificationEmail(userDetails.email || '');
+                      setEmailAlertEnabled(Boolean(userDetails.email_notification_flag));
+                      setShowNotificationModal(true);
+                    }}
+                    title="Notification settings"
+                    type="button"
+                  >
+                    Email Alerts
+                  </button>
+                  <button
+                    className={classes.deleteChatButton}
+                    onClick={handleDeleteChatRoom}
+                    title="Delete entire chat history"
+                    type="button"
+                  >
+                    <DeleteOutlineIcon style={{ fontSize: 16 }} />
+                    Delete Chat
+                  </button>
+                  <SendButton
+                    border
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${CLIENT_URL}/chat/${url}`);
+                      alert('Chat link copied to clipboard');
+                    }}
+                    style={{ padding: '0px 10px' }}
+                    title="Share Chat"
+                  />
+                  <ArrowButton
+                    border
+                    direction="right"
+                    onClick={handleLogOut}
+                    style={{ padding: '0px 10px' }}
+                    title="Log Out"
+                  />
+                </div>
               </ConversationHeader.Actions>
             </ConversationHeader>
             <MessageList>
               {chatList.length > 0 ? (
                 chatList.map((chat, index) => {
                   const dir =
-                    (userDetails.id === chat.user_id || userDetails._id === chat.user_id)
+                    userDetails.id === chat.user_id ||
+                    userDetails._id === chat.user_id
                       ? 'outgoing'
                       : 'incoming';
 
@@ -790,26 +877,27 @@ const ChatScreen = () => {
                           : undefined
                       }
                     >
-                      {/* {dir === 'outgoing' ? (
+                      {dir === 'outgoing' ? (
                         <div className={classes.messageActions}>
                           <button
                             aria-label="Delete message"
                             className={classes.deleteButton}
                             onClick={() => handleDeleteMessage(chat)}
-                            title="Delete message (right-click for menu)"
+                            title="Delete message"
                             type="button"
                           >
-                            <DeleteOutlineIcon style={{ fontSize: 18 }} />
+                            <DeleteOutlineIcon style={{ fontSize: 16 }} />
                           </button>
                         </div>
-                      ) : null} */}
+                      ) : null}
                       <Message
                         model={{
                           message: chat.message,
                           sentTime: 'just now',
                           sender: chat.username || 'Guest',
                           direction: dir
-                        }}>
+                        }}
+                      >
                         {chat.attachment ? (
                           <Message.CustomContent>
                             <img
@@ -824,14 +912,21 @@ const ChatScreen = () => {
                               }}
                             />
                             {chat.message ? (
-                              <div style={{ marginTop: 8, wordBreak: 'break-word' }}>{chat.message}</div>
+                              <div
+                                style={{
+                                  marginTop: 8,
+                                  wordBreak: 'break-word'
+                                }}
+                              >
+                                {chat.message}
+                              </div>
                             ) : null}
                           </Message.CustomContent>
                         ) : null}
                         <Avatar
                           src={
                             dir === 'outgoing'
-                              ? (userDetails.image || OUTGOING_USER_AVATAR)
+                              ? userDetails.image || OUTGOING_USER_AVATAR
                               : INCOMING_USER_AVATAR
                           }
                         />
@@ -840,14 +935,18 @@ const ChatScreen = () => {
                   );
                 })
               ) : (
-                <div className={classes.emptyState}>No messages yet. Start the conversation.</div>
+                <div className={classes.emptyState}>
+                  No messages yet. Start the conversation.
+                </div>
               )}
             </MessageList>
             <MessageInput
-              attachButton={true}
+              attachButton
+              onAttachClick={() =>
+                fileInputRef.current && fileInputRef.current.click()
+              }
               onChange={handleMsg}
               onSend={handleSend}
-              onAttachClick={() => fileInputRef.current && fileInputRef.current.click()}
               placeholder="Type a message..."
               value={message}
             />
@@ -864,17 +963,30 @@ const ChatScreen = () => {
         onClose={closeMessageMenu}
         open={messageMenu !== null}
       >
-        <MenuItem className={classes.contextMenuItem} onClick={handleDeleteFromMenu}>
-          {/* <DeleteOutlineIcon className={classes.contextMenuIcon} /> */}
+        <MenuItem
+          className={classes.contextMenuItem}
+          onClick={handleDeleteFromMenu}
+        >
+          <DeleteOutlineIcon className={classes.contextMenuIcon} />
           Delete
         </MenuItem>
       </Menu>
+
       {showNotificationModal ? (
-        <div className={classes.modalBackdrop} onClick={() => setShowNotificationModal(false)} role="presentation">
-          <div className={classes.modal} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
-            <div className={classes.modalTitle}>Notification settings</div>
+        <div
+          aria-modal="true"
+          className={classes.modalBackdrop}
+          onClick={() => setShowNotificationModal(false)}
+          role="presentation"
+        >
+          <div
+            className={classes.modal}
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+          >
+            <div className={classes.modalTitle}>Email Notification Settings</div>
             <div className={classes.modalText}>
-              Enable email alerts to receive each new message by email, or enable browser alerts for desktop popups.
+              Configure email alerts to receive incoming messages when you are offline.
             </div>
             <div className={classes.field}>
               <label className={classes.label} htmlFor="notification-email">
@@ -898,73 +1010,43 @@ const ChatScreen = () => {
               />
               <label htmlFor="email-alert">Enable email alerts</label>
             </div>
-            <div className={classes.checkboxRow}>
-              <input
-                checked={browserAlertEnabled}
-                id="browser-alert"
-                onChange={e => {
-                  const enabled = e.target.checked;
-                  setBrowserAlertEnabled(enabled);
-                  browserAlertEnabledRef.current = enabled;
-                  if (enabled) {
-                    requestBrowserAlerts();
-                  }
-                }}
-                type="checkbox"
-              />
-              <label htmlFor="browser-alert">
-                Enable browser alerts
-                {browserPermissionState && browserPermissionState !== 'granted' ? ` (${browserPermissionState})` : ''}
-              </label>
-            </div>
-            <button
-              className={classes.secondaryButton}
-              onClick={() => {
-                requestBrowserAlerts().then(granted => {
-                  if (granted) {
-                    showBrowserNotification({
-                      username: 'Test',
-                      message: 'This is a browser notification test'
-                    });
-                  }
-                });
-              }}
-              style={{ marginBottom: 18, width: '100%' }}
-              type="button"
-            >
-              Test browser notification
-            </button>
             <div className={classes.modalActions}>
-              <button className={classes.secondaryButton} onClick={() => setShowNotificationModal(false)} type="button">
+              <button
+                className={classes.secondaryButton}
+                onClick={() => setShowNotificationModal(false)}
+                type="button"
+              >
                 Cancel
               </button>
-              <button className={classes.primaryButton} onClick={saveNotificationSettings} type="button">
+              <button
+                className={classes.primaryButton}
+                onClick={saveNotificationSettings}
+                type="button"
+              >
                 {settingsSaving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
         </div>
       ) : null}
+
       <div className={classes.composer}>
         <input
-          ref={fileInputRef}
           accept="image/*"
           className={classes.fileInput}
           onChange={handleAttachmentChange}
+          ref={fileInputRef}
           type="file"
         />
-        {/* <button
-          aria-label="Attach image"
-          className={classes.attachButton}
-          onClick={() => fileInputRef.current && fileInputRef.current.click()}
-          type="button"
-          title="Attach image"
-        >
-          +
-        </button> */}
         {attachmentName ? (
           <div className={classes.preview}>
-            {attachment ? <img alt={attachmentName} className={classes.previewImg} src={attachment} /> : null}
+            {attachment ? (
+              <img
+                alt={attachmentName}
+                className={classes.previewImg}
+                src={attachment}
+              />
+            ) : null}
             <span>{attachmentName}</span>
           </div>
         ) : null}

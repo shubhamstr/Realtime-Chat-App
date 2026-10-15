@@ -34,6 +34,9 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
+// Automatically expire messages after 30 days (1 month)
+messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 })
+
 const User = mongoose.models.User || mongoose.model("User", userSchema)
 const Message = mongoose.models.Message || mongoose.model("Message", messageSchema)
 
@@ -66,6 +69,7 @@ const deleteMessage = ({ id, user_id, room_id }) => {
 
   return Message.deleteOne(filter)
 }
+const deleteMessagesByRoomId = (roomId) => Message.deleteMany({ room_id: roomId })
 const updateMessage = (id, fields) => Message.updateOne({ _id: id }, { $set: fields })
 
 module.exports = {
@@ -78,5 +82,6 @@ module.exports = {
   createMessage,
   getMessagesByRoomId,
   deleteMessage,
+  deleteMessagesByRoomId,
   updateMessage,
 }

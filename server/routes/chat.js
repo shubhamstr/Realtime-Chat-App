@@ -200,4 +200,39 @@ router.delete("/delete", (req, res) => {
     })
 })
 
+router.delete("/delete-room", (req, res) => {
+  const room_id = (req.body?.room_id || req.query?.room_id || "").toString()
+
+  if (!room_id) {
+    return res.send({
+      err: true,
+      msg: "Missing room_id",
+      data: "",
+    })
+  }
+
+  db.deleteMessagesByRoomId(room_id)
+    .then((result) => {
+      const io = req.app.get("io")
+      if (io) {
+        io.to(room_id).emit("room-cleared", {
+          roomName: room_id,
+        })
+      }
+
+      return res.send({
+        err: false,
+        msg: "Chat room deleted successfully",
+        data: result,
+      })
+    })
+    .catch((err) => {
+      return res.send({
+        err: true,
+        msg: err.message || "Server Error (delete-room)",
+        data: err,
+      })
+    })
+})
+
 module.exports = router
