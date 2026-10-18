@@ -23,6 +23,8 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    environment:
+      - GLIBC_TUNABLES=glibc.pthread.rseq=1
 
 volumes:
   mongo_data:

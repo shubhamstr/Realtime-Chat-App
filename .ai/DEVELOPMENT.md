@@ -135,3 +135,5 @@ The project includes automated GitHub Actions workflows under [.github/workflows
    - Notice that [server/docker-compose.yml](file:///w:/shubham/personal/Realtime-Chat-App/server/docker-compose.yml#L9) and [aws-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-server.yml) expose the server at host port `3001` (`-p 3001:5000`). If running under Docker, ensure `REACT_APP_API_URL` points to port `3001` rather than `5000`.
 2. **CORS Errors During Development:**
    - If the client is hosted on a non-standard port or hostname (e.g. `127.0.0.1` vs `localhost`), ensure `ALLOWED_ORIGINS` in `server/.env` includes that origin.
+3. **MongoDB Linux Kernel Incompatibility (SERVER-121912):**
+   - On hosts running Linux kernel versions 6.19 through 7.0.13, MongoDB's bundled TCMalloc conflicts with the kernel's `rseq` ABI. If encountering startup crashes or the `validateRseqKernelCompat` fatal error, pin to `mongo:7` and supply the environment variable `GLIBC_TUNABLES=glibc.pthread.rseq=1`.

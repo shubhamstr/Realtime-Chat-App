@@ -19,6 +19,14 @@ jobs:
             docker rm -f chat-db || true
             
             docker run -d --name chat-db --network chat-network \
+              --restart always \
+              -v mongo_data:/data/db \
+              -e GLIBC_TUNABLES=glibc.pthread.rseq=1 \
               -e MONGO_INITDB_DATABASE=socket_chat \
               -p 27017:27017 \
-              mongo:latest
+              mongo:7
+            
+            # Verify container status
+            sleep 3
+            docker ps --filter "name=chat-db"
+            docker logs --tail 20 chat-db
