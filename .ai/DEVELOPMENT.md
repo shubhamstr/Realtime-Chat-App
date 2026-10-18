@@ -118,12 +118,13 @@ The project includes automated GitHub Actions workflows under [.github/workflows
    - Authenticates to AWS via `aws-actions/configure-aws-credentials` and logs into Amazon ECR.
    - Injects repository variables and secrets into `server/.env`.
    - Builds and pushes Docker image to ECR tagged with `latest` and commit SHA.
-   - SSH connects to EC2 instance, authenticates Docker with ECR, pulls latest image, and restarts container with `-p 3001:5000`.
+   - Generates masked ECR login token on GitHub Actions runner and passes it to the EC2 instance via SSH environment variables.
+   - SSH connects to EC2 instance, authenticates Docker with ECR via piped token, pulls latest image, and restarts container with `-p 3001:5000` (`--restart always`).
 2. **[aws-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-client.yml):**
    - Configurable for manual trigger (`workflow_dispatch`) or automated trigger on changes under `client/**`.
    - Generates client `.env` and builds multi-stage Docker image using Nginx Alpine.
    - Pushes to Amazon ECR.
-   - Deploys container to EC2 instance with `-p 3000:80`.
+   - Generates masked ECR login token on GitHub Actions runner, authenticates Docker on EC2 via SSH environment variables, and deploys container to EC2 instance with `-p 3000:80` (`--restart always`).
 3. **[deploy-mongo.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/deploy-mongo.yml):**
    - Manual `workflow_dispatch` job to deploy MongoDB container to the EC2 instance.
 

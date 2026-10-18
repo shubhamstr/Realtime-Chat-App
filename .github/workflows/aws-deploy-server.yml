@@ -53,22 +53,41 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Get ECR login token
+        id: ecr-token
+        run: |
+          TOKEN=$(aws ecr get-login-password --region ${{ vars.AWS_REGION || 'us-east-1' }})
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> $GITHUB_OUTPUT
+
       - name: Execute deployment via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          ECR_PASSWORD: ${{ steps.ecr-token.outputs.token }}
+          REGISTRY: ${{ needs.build-and-push.outputs.registry }}
+          IMAGE_NAME: ${{ vars.ECR_REPOSITORY_SERVER || 'chat-server' }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: ECR_PASSWORD,REGISTRY,IMAGE_NAME
           script: |
             # Authenticate Docker to Amazon ECR on EC2
-            aws ecr get-login-password --region ${{ vars.AWS_REGION || 'us-east-1' }} | docker login --username AWS --password-stdin ${{ needs.build-and-push.outputs.registry }}
+            echo "$ECR_PASSWORD" | docker login --username AWS --password-stdin $REGISTRY
             
             # Pull the latest image
-            docker pull ${{ needs.build-and-push.outputs.registry }}/${{ vars.ECR_REPOSITORY_SERVER || 'chat-server' }}:latest
+            docker pull $REGISTRY/$IMAGE_NAME:latest
             
             # Restart container
             docker rm -f chat-server || true
-            docker run -d --name chat-server -p 3001:5000 ${{ needs.build-and-push.outputs.registry }}/${{ vars.ECR_REPOSITORY_SERVER || 'chat-server' }}:latest
+            docker run -d --name chat-server --restart always -p 3001:5000 $REGISTRY/$IMAGE_NAME:latest
             
             # Verify container status
             sleep 3
