@@ -32,7 +32,7 @@
 | **Document Database** | MongoDB (Driver: `mongoose`) | `^8.23.1` (DB: Mongo `7.0`) | NoSQL storage engine for users and messages |
 | **Containerization** | Docker & Docker Compose | Compose `v3.9` | Containerization for client, server, and MongoDB |
 | **Web Server / Reverse Proxy**| Nginx (Alpine) | `nginx:alpine` | Production static asset server and SPA routing for client |
-| **CI / CD** | GitHub Actions | `v4` / `v5` actions | Automated building, container pushing to OCIR, and SSH deployment |
+| **CI / CD** | GitHub Actions | `v4` / `v5` actions | Automated building, container pushing to Amazon ECR, and EC2 SSH deployment |
 
 ---
 

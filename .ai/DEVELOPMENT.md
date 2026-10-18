@@ -109,28 +109,29 @@ docker build -t chat-client:latest ./client
 
 ---
 
-## 6. CI/CD & Production Deployment (Oracle Cloud Infrastructure)
+## 6. CI/CD & Production Deployment (Amazon Web Services - ECR & EC2)
 
 The project includes automated GitHub Actions workflows under [.github/workflows/](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows):
 
-1. **[oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml):**
-   - Triggers on push to `main` when files under `server/**` change.
-   - Authenticates with Oracle Cloud Infrastructure Registry (`bom.ocir.io`).
-   - Injects repository variables into `server/.env`.
-   - Builds and pushes Docker image `chat-server:latest`.
-   - SSH connects to Oracle VM, pulls latest image, and restarts container with `-p 3001:5000`.
-2. **[oci-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-client.yml):**
-   - Triggers on push to `main` when files under `client/**` change.
-   - Builds multi-stage Docker image using Nginx Alpine.
-   - Deploys container to Oracle VM with `-p 3000:80`.
+1. **[aws-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-server.yml):**
+   - Configurable for manual trigger (`workflow_dispatch`) or automated trigger on changes under `server/**`.
+   - Authenticates to AWS via `aws-actions/configure-aws-credentials` and logs into Amazon ECR.
+   - Injects repository variables and secrets into `server/.env`.
+   - Builds and pushes Docker image to ECR tagged with `latest` and commit SHA.
+   - SSH connects to EC2 instance, authenticates Docker with ECR, pulls latest image, and restarts container with `-p 3001:5000`.
+2. **[aws-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-client.yml):**
+   - Configurable for manual trigger (`workflow_dispatch`) or automated trigger on changes under `client/**`.
+   - Generates client `.env` and builds multi-stage Docker image using Nginx Alpine.
+   - Pushes to Amazon ECR.
+   - Deploys container to EC2 instance with `-p 3000:80`.
 3. **[deploy-mongo.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/deploy-mongo.yml):**
-   - Manual `workflow_dispatch` job to deploy MongoDB container to the Oracle VM.
+   - Manual `workflow_dispatch` job to deploy MongoDB container to the EC2 instance.
 
 ---
 
 ## 7. Common Pitfalls & Troubleshooting
 
 1. **Port Mismatch (3001 vs 5000 in Docker):**
-   - Notice that [server/docker-compose.yml](file:///w:/shubham/personal/Realtime-Chat-App/server/docker-compose.yml#L9) and [oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml#L75) expose the server at host port `3001` (`-p 3001:5000`). If running under Docker, ensure `REACT_APP_API_URL` points to port `3001` rather than `5000`.
+   - Notice that [server/docker-compose.yml](file:///w:/shubham/personal/Realtime-Chat-App/server/docker-compose.yml#L9) and [aws-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-server.yml) expose the server at host port `3001` (`-p 3001:5000`). If running under Docker, ensure `REACT_APP_API_URL` points to port `3001` rather than `5000`.
 2. **CORS Errors During Development:**
    - If the client is hosted on a non-standard port or hostname (e.g. `127.0.0.1` vs `localhost`), ensure `ALLOWED_ORIGINS` in `server/.env` includes that origin.

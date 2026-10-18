@@ -9,7 +9,7 @@
 
 ### 1.2 JWT Expiration & Secret Key
 - **Current Behavior:** In [server/routes/auth.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/auth.js#L25), `jwt.sign(data, jwtSecretKey)` is called without an `expiresIn` option. Tokens are valid indefinitely.
-- **Hardcoded Secrets:** The fallback JWT secret in both code and deployment workflows ([.github/workflows/oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml#L34)) is hardcoded as `socket_secret_chat`.
+- **Hardcoded Secrets:** The fallback JWT secret in both code and deployment workflows ([.github/workflows/aws-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-server.yml)) can fall back to `socket_secret_chat` if `JWT_SECRET_KEY` secret is not supplied.
 - **Risk Level:** **High**
 
 ---
@@ -60,14 +60,10 @@
 
 ## 6. DevOps & Infrastructure Security
 
-### 6.1 Secret Exposure in CI/CD Logs
-- In [.github/workflows/oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml#L46), the workflow executes:
-  ```bash
-  cat ./server/.env
-  ```
-  This dumps database credentials (`MONGO_URI`) directly into execution logs.
-- In [oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml#L74) and [oci-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-client.yml#L70), the workflow executes `docker exec <container> cat .env`.
-- **Risk Level:** **Critical**
+### 6.1 Secret Exposure in CI/CD Logs (Remediated)
+- Previously in the legacy OCI workflows, `cat .env` was executed during pipeline runs, dumping database credentials and secret tokens into execution logs.
+- In the refactored AWS ECR & EC2 workflows ([aws-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-server.yml) and [aws-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-client.yml)), echoing `.env` has been removed and secrets are securely provided via GitHub Secrets.
+- **Status:** **Resolved in AWS Workflows**
 
 ---
 
@@ -75,6 +71,6 @@
 
 1. **Implement JWT Auth Middleware:** Create an Express middleware that validates `req.headers.authorization`, verifies the signature using `process.env.JWT_SECRET_KEY`, and attaches `req.user = decodedToken`.
 2. **Derive Identity Server-Side:** In `/chat/insert`, extract `user_id` strictly from `req.user.userId` instead of `req.body.user_id`.
-3. **Remove `cat .env` from CI/CD:** Delete the debugging lines echoing credentials into workflow run logs.
+3. **Remove `cat .env` from CI/CD:** Delete the debugging lines echoing credentials into workflow run logs. (Completed in AWS refactor)
 4. **Use Docker Internal Networks:** Stop exposing database ports (`27017`) to `0.0.0.0`; connect services via Docker bridge networks.
 5. **Secure Database Credentials:** Set strong authentication for MongoDB in production.

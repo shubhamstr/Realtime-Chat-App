@@ -5,15 +5,15 @@ on:
 
 jobs:
   deploy-mongo:
-    name: Deploy MongoDB to Oracle Cloud VM
+    name: Deploy MongoDB to AWS EC2
     runs-on: ubuntu-latest
     steps:
       - name: Execute MongoDB deployment via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.OCI_VM_IP }}
-          username: ${{ secrets.OCI_VM_USERNAME }}
-          key: ${{ secrets.OCI_VM_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             docker network create chat-network || true
             docker rm -f chat-db || true

@@ -52,14 +52,14 @@ The application features persistent document storage using **MongoDB** via Mongo
 ## 5. Current Project Status
 
 - **Status:** Functional MVP / Prototype with active CI/CD deployment workflows.
-- **Maturity Level:** Early production prototype deployed to Oracle Cloud Infrastructure (OCI).
+- **Maturity Level:** Early production prototype deployed to Amazon Web Services (AWS).
 - **Template Heritage:**
   - The client was originated from Devias Material Dashboard (`react-material-dashboard` in [client/package.json](file:///w:/shubham/personal/Realtime-Chat-App/client/package.json)), but has been heavily simplified to focus exclusively on Login and Chat views.
   - Unused dependencies from the template remain in `package.json` (e.g., `chart.js`, `react-chartjs-2`).
 - **Core Strengths:**
   - Clean separation of database providers.
   - Responsive, modern Chat UI using `@chatscope/chat-ui-kit-react`.
-  - Ready-to-use Docker and GitHub Actions workflows for OCI deployment.
+  - Ready-to-use Docker and GitHub Actions workflows for AWS ECR and EC2 deployment.
 - **High-Priority Needs:**
   - JWT authorization middleware on backend routes (currently unauthenticated).
   - Password hashing and proper authentication if accounts are to be protected.

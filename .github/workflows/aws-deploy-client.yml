@@ -1,0 +1,71 @@
+name: Build and Deploy Client to AWS ECR and EC2
+
+on:
+  # Manual deployment only - push automation can be uncommented when ready
+  # push:
+  #   branches: [ "main" ]
+  #   paths:
+  #     - 'client/**'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    name: Build and Push Client Image to ECR
+    runs-on: ubuntu-latest
+    outputs:
+      registry: ${{ steps.login-ecr.outputs.registry }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Generate client .env file
+        run: |
+          echo "REACT_APP_API_URL=${{ vars.REACT_APP_API_URL }}" > ./client/.env
+          echo "REACT_APP_CLIENT_URL=${{ vars.REACT_APP_CLIENT_URL }}" >> ./client/.env
+          echo "Client environment configured."
+
+      - name: Build and Push Client Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_CLIENT || 'chat-client' }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY_CLIENT || 'chat-client' }}:${{ github.sha }}
+
+  deploy:
+    name: Deploy Client to AWS EC2
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute deployment via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Authenticate Docker to Amazon ECR on EC2
+            aws ecr get-login-password --region ${{ vars.AWS_REGION || 'us-east-1' }} | docker login --username AWS --password-stdin ${{ needs.build-and-push.outputs.registry }}
+            
+            # Pull the latest image
+            docker pull ${{ needs.build-and-push.outputs.registry }}/${{ vars.ECR_REPOSITORY_CLIENT || 'chat-client' }}:latest
+            
+            # Restart container
+            docker rm -f chat-client || true
+            docker run -d --name chat-client -p 3000:80 ${{ needs.build-and-push.outputs.registry }}/${{ vars.ECR_REPOSITORY_CLIENT || 'chat-client' }}:latest
+            
+            # Verify container status
+            sleep 3
+            docker ps --filter "name=chat-client"

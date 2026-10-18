@@ -118,9 +118,9 @@ sequenceDiagram
 ## 6. Integrations & External Services
 
 1. **SMTP Server:** Configured via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` in [server/routes/chat.js](file:///w:/shubham/personal/Realtime-Chat-App/server/routes/chat.js). Used to send email alerts on incoming chat messages.
-2. **Oracle Cloud Infrastructure (OCI):**
-   - Registry: OCIR (`bom.ocir.io/bm9iljpbnagj`) used as Docker container registry.
-   - Compute VM: Automated SSH deployment via GitHub Actions in [.github/workflows/](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows).
+2. **Amazon Web Services (AWS):**
+   - Registry: Amazon ECR (`chat-client`, `chat-server`) used as private Docker container registries.
+   - Compute: Amazon EC2 instance with automated deployment via SSH in GitHub Actions ([.github/workflows/](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows)).
 3. **HTML5 Browser APIs:**
    - Web Notification API for native desktop popups.
    - Clipboard API for copying invite links (`navigator.clipboard.writeText`).

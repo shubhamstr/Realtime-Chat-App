@@ -41,7 +41,7 @@ The repository is split into two independent workspaces:
 ```
 Realtime-Chat-App/
 ├── .ai/                       # AI context, architecture, API, and rule documentation
-├── .github/workflows/         # CI/CD pipelines (OCI Docker deployments, DB deploy)
+├── .github/workflows/         # CI/CD pipelines (AWS ECR/EC2 Docker deployments, DB deploy)
 ├── client/
 │   ├── public/                # Static assets, favicon, index.html
 │   └── src/
@@ -236,8 +236,8 @@ All REST API endpoints MUST return JSON with the following structure:
 2. **Branching & Pull Requests:**
    - Work on feature branches. Never push untested code directly to `main`.
 3. **CI/CD Triggers:**
-   - Changes under `server/**` trigger Oracle Cloud Server deployment ([oci-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-server.yml)).
-   - Changes under `client/**` trigger Oracle Cloud Client deployment ([oci-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/oci-deploy-client.yml)).
+   - Changes under `server/**` trigger AWS Server deployment ([aws-deploy-server.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-server.yml)).
+   - Changes under `client/**` trigger AWS Client deployment ([aws-deploy-client.yml](file:///w:/shubham/personal/Realtime-Chat-App/.github/workflows/aws-deploy-client.yml)).
    - Avoid touching both workspaces unnecessarily if a feature is strictly client-side or server-side.
 
 ---
